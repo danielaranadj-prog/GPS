@@ -45,7 +45,8 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   const accuracyCircleRef = useRef<L.Circle | null>(null);
   const stopsLayerGroupRef = useRef<L.LayerGroup | null>(null);
 
-  const [basemap, setBasemap] = useState<'dark' | 'voyager' | 'osm'>('dark');
+  type BasemapType = 'google-streets' | 'google-hybrid' | 'osm' | 'dark';
+  const [basemap, setBasemap] = useState<BasemapType>('google-streets');
 
   // Initialize Map
   useEffect(() => {
@@ -76,12 +77,12 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     // Custom zoom control in top right
     L.control.zoom({ position: 'topright' }).addTo(map);
 
-    // Initial tile layer (Carto Dark)
+    // Initial tile layer: Google Maps Streets (fast, high accuracy, fully detailed for Tepic & Xalisco)
     const tileLayer = L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
+      'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
       {
-        subdomains: 'abcd',
-        maxZoom: 20,
+        subdomains: ['0', '1', '2', '3'],
+        maxZoom: 21,
       }
     ).addTo(map);
     tileLayerRef.current = tileLayer;
@@ -116,25 +117,33 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     };
   }, []);
 
-  // Handle Basemap Switch
+  // Handle Basemap Switch (Google Streets, Google Hybrid Satellite, OSM OpenSource, Carto Dark)
   useEffect(() => {
     if (!mapInstanceRef.current || !tileLayerRef.current) return;
 
     tileLayerRef.current.remove();
 
-    let url = 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png';
-    let subdomains = 'abcd';
+    let url = 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+    let subdomains: string | string[] = ['0', '1', '2', '3'];
+    let maxZoom = 21;
 
-    if (basemap === 'voyager') {
-      url = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
+    if (basemap === 'google-hybrid') {
+      url = 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+      subdomains = ['0', '1', '2', '3'];
+      maxZoom = 21;
     } else if (basemap === 'osm') {
       url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
       subdomains = 'abc';
+      maxZoom = 19;
+    } else if (basemap === 'dark') {
+      url = 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png';
+      subdomains = 'abcd';
+      maxZoom = 20;
     }
 
     const newLayer = L.tileLayer(url, {
       subdomains,
-      maxZoom: 20,
+      maxZoom,
     }).addTo(mapInstanceRef.current);
 
     tileLayerRef.current = newLayer;
@@ -360,24 +369,38 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       <div ref={mapContainerRef} className="absolute inset-0 w-full h-full z-0" />
 
       {/* Floating Basemap Selector */}
-      <div className="absolute top-4 left-4 z-[400] flex bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 shadow-2xl text-xs font-semibold text-slate-300">
+      <div className="absolute top-4 left-4 z-[400] flex bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 shadow-2xl text-xs font-semibold text-slate-300 gap-1">
         <button
-          onClick={() => setBasemap('dark')}
-          className={`px-2.5 py-1 rounded-lg transition-all ${basemap === 'dark' ? 'bg-blue-600 text-white shadow' : 'hover:text-white'}`}
+          onClick={() => setBasemap('google-streets')}
+          className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
+            basemap === 'google-streets' ? 'bg-blue-600 text-white shadow' : 'hover:text-white hover:bg-slate-800'
+          }`}
         >
-          Oscuro
+          <span>Google Calles</span>
         </button>
         <button
-          onClick={() => setBasemap('voyager')}
-          className={`px-2.5 py-1 rounded-lg transition-all ${basemap === 'voyager' ? 'bg-blue-600 text-white shadow' : 'hover:text-white'}`}
+          onClick={() => setBasemap('google-hybrid')}
+          className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
+            basemap === 'google-hybrid' ? 'bg-blue-600 text-white shadow' : 'hover:text-white hover:bg-slate-800'
+          }`}
         >
-          Carto
+          <span>Satélite</span>
         </button>
         <button
           onClick={() => setBasemap('osm')}
-          className={`px-2.5 py-1 rounded-lg transition-all ${basemap === 'osm' ? 'bg-blue-600 text-white shadow' : 'hover:text-white'}`}
+          className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
+            basemap === 'osm' ? 'bg-blue-600 text-white shadow' : 'hover:text-white hover:bg-slate-800'
+          }`}
         >
-          OSM
+          <span>OpenSource</span>
+        </button>
+        <button
+          onClick={() => setBasemap('dark')}
+          className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
+            basemap === 'dark' ? 'bg-blue-600 text-white shadow' : 'hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <span>Oscuro</span>
         </button>
       </div>
     </div>
