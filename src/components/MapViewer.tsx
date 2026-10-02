@@ -44,9 +44,14 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   const userMarkerRef = useRef<L.Marker | null>(null);
   const accuracyCircleRef = useRef<L.Circle | null>(null);
   const stopsLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const terminusGroupRef = useRef<L.LayerGroup | null>(null);
 
   type BasemapType = 'google-streets' | 'google-hybrid' | 'osm' | 'dark';
   const [basemap, setBasemap] = useState<BasemapType>('google-streets');
+  // useRef so effects always read current value synchronously (no stale closure)
+  const mapReadyRef = useRef(false);
+  // Incrementing this forces dependent effects to re-run after map is initialized
+  const [mapReadyTick, setMapReadyTick] = useState(0);
 
   // Initialize Map
   useEffect(() => {
@@ -90,7 +95,14 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     // Layer group for stops
     const stopsGroup = L.layerGroup().addTo(map);
     stopsLayerGroupRef.current = stopsGroup;
+
+    // Layer group for start/end terminus markers
+    const terminusGroup = L.layerGroup().addTo(map);
+    terminusGroupRef.current = terminusGroup;
+
     mapInstanceRef.current = map;
+    mapReadyRef.current = true;
+    setMapReadyTick(t => t + 1); // trigger effects that guard on mapReadyRef
 
     // Force size calculation immediately and after small delays for layout stabilization
     map.invalidateSize();
@@ -105,6 +117,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     }
 
     return () => {
+      mapReadyRef.current = false;
       clearTimeout(timer1);
       clearTimeout(timer2);
       resizeObserver.disconnect();
@@ -169,39 +182,87 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   // Render Official SEMOVI Route Line
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map) return;
+    if (!map || !mapReadyRef.current) return;
 
     if (officialLineRef.current) officialLineRef.current.remove();
     if (officialGlowLineRef.current) officialGlowLineRef.current.remove();
+    if (terminusGroupRef.current) terminusGroupRef.current.clearLayers();
 
     if (!selectedRoute) return;
     const pathCoords = direction === 'ida' ? selectedRoute.ida : selectedRoute.vuelta;
     if (!pathCoords || pathCoords.length < 2) return;
 
-    // Glowing base line
+    const routeColor = selectedRoute.color || '#2563eb';
+
+    // High-contrast dark outline / casing so it pops out on satellite or Google streets
     officialGlowLineRef.current = L.polyline(pathCoords, {
-      color: selectedRoute.color || '#3b82f6',
-      weight: 9,
-      opacity: 0.25,
+      color: '#090d16',
+      weight: 8,
+      opacity: 0.85,
       lineCap: 'round',
       lineJoin: 'round',
     }).addTo(map);
 
-    // Core crisp line
+    // Core crisp vibrant transit line
     officialLineRef.current = L.polyline(pathCoords, {
-      color: selectedRoute.color || '#3b82f6',
-      weight: 4,
-      opacity: 0.85,
-      dashArray: '8, 8',
+      color: routeColor,
+      weight: 5,
+      opacity: 1,
       lineCap: 'round',
       lineJoin: 'round',
     }).addTo(map);
-  }, [selectedRoute, direction]);
+
+    // Terminus badges (Start 🚩 and End 🏁)
+    if (terminusGroupRef.current) {
+      const startPt = pathCoords[0];
+      const endPt = pathCoords[pathCoords.length - 1];
+
+      const startIcon = L.divIcon({
+        className: 'start-badge-icon',
+        html: `
+          <div class="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-extrabold text-[10px] shadow-lg border border-white flex items-center gap-1 whitespace-nowrap">
+            <span>🚩 Inicio</span>
+          </div>
+        `,
+        iconSize: [60, 22],
+        iconAnchor: [30, 26],
+      });
+      terminusGroupRef.current.addLayer(L.marker(startPt, { icon: startIcon, interactive: false }));
+
+      const endIcon = L.divIcon({
+        className: 'end-badge-icon',
+        html: `
+          <div class="px-2 py-0.5 rounded-full bg-rose-600 text-white font-extrabold text-[10px] shadow-lg border border-white flex items-center gap-1 whitespace-nowrap">
+            <span>🏁 Terminal</span>
+          </div>
+        `,
+        iconSize: [68, 22],
+        iconAnchor: [34, 26],
+      });
+      terminusGroupRef.current.addLayer(L.marker(endPt, { icon: endIcon, interactive: false }));
+    }
+
+    // Automatically center and zoom to fit the selected route bounds!
+    try {
+      const bounds = L.latLngBounds(pathCoords);
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, {
+          padding: [60, 60],
+          maxZoom: 16,
+          animate: true,
+          duration: 0.8,
+        });
+      }
+    } catch (e) {
+      console.warn('fitBounds error:', e);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRoute, direction, mapReadyTick]);
 
   // Render Street Recorded Track
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map) return;
+    if (!map || !mapReadyRef.current) return;
 
     if (recordedLineRef.current) recordedLineRef.current.remove();
 
@@ -215,12 +276,13 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       lineCap: 'round',
       lineJoin: 'round',
     }).addTo(map);
-  }, [recordedPoints]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordedPoints, mapReadyTick]);
 
   // Render Deviation Track (Alert Red)
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map) return;
+    if (!map || !mapReadyRef.current) return;
 
     if (deviationLineRef.current) deviationLineRef.current.remove();
 
@@ -234,12 +296,14 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       lineCap: 'round',
       lineJoin: 'round',
     }).addTo(map);
-  }, [deviationPoints]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deviationPoints, mapReadyTick]);
 
   // Render Stops Markers
   useEffect(() => {
+    const map = mapInstanceRef.current;
     const stopsGroup = stopsLayerGroupRef.current;
-    if (!stopsGroup) return;
+    if (!map || !stopsGroup || !mapReadyRef.current) return;
 
     stopsGroup.clearLayers();
 
@@ -305,12 +369,13 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       marker.bindPopup(popupContent, { className: 'custom-transit-popup' });
       stopsGroup.addLayer(marker);
     });
-  }, [stops, isDesktopMode, onStopDragEnd]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stops, isDesktopMode, onStopDragEnd, mapReadyTick]);
 
   // Update Live GPS Location Marker & Accuracy Circle
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map) return;
+    if (!map || !mapReadyRef.current) return;
 
     const { lat, lng, accuracy } = currentPosition;
 
@@ -353,7 +418,8 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     } else {
       userMarkerRef.current.setLatLng([lat, lng]);
     }
-  }, [currentPosition]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPosition, mapReadyTick]);
 
   // Re-center on centerTrigger change
   useEffect(() => {

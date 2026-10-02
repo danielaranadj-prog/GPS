@@ -9,7 +9,14 @@ export class TransitStudioDatabase extends Dexie {
 
   constructor() {
     super('TepicTransitStudioDB');
+    // Version 1 schema (kept for migration chain)
     this.version(1).stores({
+      stops: 'id, type, direction, sequence, *routeIds, createdAt',
+      routes: 'id, code, category, isCustom',
+      tracks: 'id, routeId, direction, startedAt',
+    });
+    // Version 2: same schema, forces re-seeding of routes with correct names
+    this.version(2).stores({
       stops: 'id, type, direction, sequence, *routeIds, createdAt',
       routes: 'id, code, category, isCustom',
       tracks: 'id, routeId, direction, startedAt',
@@ -19,13 +26,11 @@ export class TransitStudioDatabase extends Dexie {
 
 export const db = new TransitStudioDatabase();
 
-// Initialize and seed default routes if needed
+// Initialize and seed default routes — always overwrite so names stay up-to-date
 export async function initializeDatabase() {
-  const routesCount = await db.routes.count();
-  if (routesCount === 0) {
-    console.log('[DB] Seeding 39 official SEMOVI Tepic routes...');
-    await db.routes.bulkAdd(defaultRoutes as RouteItem[]);
-  }
+  console.log('[DB] Syncing 39 official SEMOVI Tepic routes (bulkPut)...');
+  // bulkPut = insert OR update; keeps custom routes untouched since they have different ids
+  await db.routes.bulkPut(defaultRoutes as RouteItem[]);
 
   // Pre-seed sample stops if empty for immediate testing
   const stopsCount = await db.stops.count();

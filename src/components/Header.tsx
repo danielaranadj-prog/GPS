@@ -124,22 +124,24 @@ export const Header: React.FC<HeaderProps> = ({
               }}
               className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-3 py-1.5 text-xs md:text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-inner"
             >
-              <optgroup label="⭐ Rutas Oficiales SEMOVI Tepic (39)">
+              <optgroup label="⭐ Rutas de Transporte Público (Tepic)">
                 {routes
                   .filter(r => !r.isCustom)
+                  .sort((a, b) => a.name.localeCompare(b.name, 'es'))
                   .map(r => (
                     <option key={r.id} value={r.id}>
-                      {r.code} - {r.name}
+                      {r.name}
                     </option>
                   ))}
               </optgroup>
               {routes.some(r => r.isCustom) && (
-                <optgroup label="🛠️ Rutas y Ramales 2026 (Personalizadas)">
+                <optgroup label="🛠️ Nuevas Rutas y Ramales">
                   {routes
                     .filter(r => r.isCustom)
+                    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
                     .map(r => (
                       <option key={r.id} value={r.id}>
-                        {r.code} - {r.name}
+                        {r.name}
                       </option>
                     ))}
                 </optgroup>
