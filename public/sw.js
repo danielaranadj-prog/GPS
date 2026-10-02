@@ -1,11 +1,11 @@
 const CACHE_NAME = 'tepic-transit-v1';
 const ASSETS_TO_CACHE = [
-  '/mapper/',
-  '/mapper/index.html',
-  '/mapper/manifest.json',
-  '/mapper/icon.svg',
-  '/mapper/icon-192.png',
-  '/mapper/icon-512.png',
+  './',
+  './index.html',
+  './manifest.json',
+  './icon.svg',
+  './icon-192.png',
+  './icon-512.png',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
 ];
 
@@ -51,7 +51,7 @@ self.addEventListener('fetch', (event) => {
         .catch(() => {
           // Fallback if offline
           if (event.request.destination === 'document') {
-            return caches.match('/mapper/index.html');
+            return caches.match('./index.html');
           }
         });
     })

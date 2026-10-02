@@ -74,10 +74,22 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     // Layer group for stops
     const stopsGroup = L.layerGroup().addTo(map);
     stopsLayerGroupRef.current = stopsGroup;
-
     mapInstanceRef.current = map;
 
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    if (mapContainerRef.current) {
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
     return () => {
+      clearTimeout(timer);
+      resizeObserver.disconnect();
       map.remove();
       mapInstanceRef.current = null;
     };
