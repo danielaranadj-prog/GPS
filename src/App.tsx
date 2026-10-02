@@ -188,10 +188,10 @@ export function App() {
       />
 
       {/* Main Workspace (Map + Drawer) */}
-      <div className="flex-1 relative flex overflow-hidden">
+      <div className="flex-1 min-h-0 relative flex overflow-hidden">
         
         {/* Interactive Map */}
-        <div className="flex-1 h-full relative">
+        <div className="flex-1 min-h-0 h-full relative">
           <MapViewer
             currentPosition={position}
             selectedRoute={selectedRoute}

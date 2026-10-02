@@ -49,9 +49,24 @@ export const MapViewer: React.FC<MapViewerProps> = ({
 
   // Initialize Map
   useEffect(() => {
-    if (!mapContainerRef.current || mapInstanceRef.current) return;
+    if (!mapContainerRef.current) return;
 
-    const map = L.map(mapContainerRef.current, {
+    // In StrictMode or on re-mount, clean previous instance
+    if (mapInstanceRef.current) {
+      try {
+        mapInstanceRef.current.remove();
+      } catch {
+        // ignore
+      }
+      mapInstanceRef.current = null;
+    }
+
+    const container = mapContainerRef.current as HTMLElement & { _leaflet_id?: number | null };
+    if (container._leaflet_id) {
+      delete container._leaflet_id;
+    }
+
+    const map = L.map(container, {
       center: [currentPosition.lat, currentPosition.lng],
       zoom: 15,
       zoomControl: false,
@@ -63,7 +78,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
 
     // Initial tile layer (Carto Dark)
     const tileLayer = L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png',
+      'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png',
       {
         subdomains: 'abcd',
         maxZoom: 20,
@@ -76,9 +91,10 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     stopsLayerGroupRef.current = stopsGroup;
     mapInstanceRef.current = map;
 
-    const timer = setTimeout(() => {
-      map.invalidateSize();
-    }, 250);
+    // Force size calculation immediately and after small delays for layout stabilization
+    map.invalidateSize();
+    const timer1 = setTimeout(() => map.invalidateSize(), 100);
+    const timer2 = setTimeout(() => map.invalidateSize(), 300);
 
     const resizeObserver = new ResizeObserver(() => {
       map.invalidateSize();
@@ -88,9 +104,14 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     }
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
       resizeObserver.disconnect();
-      map.remove();
+      try {
+        map.remove();
+      } catch {
+        // ignore
+      }
       mapInstanceRef.current = null;
     };
   }, []);
@@ -101,11 +122,11 @@ export const MapViewer: React.FC<MapViewerProps> = ({
 
     tileLayerRef.current.remove();
 
-    let url = 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png';
+    let url = 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png';
     let subdomains = 'abcd';
 
     if (basemap === 'voyager') {
-      url = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+      url = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
     } else if (basemap === 'osm') {
       url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
       subdomains = 'abc';
@@ -335,8 +356,8 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   }, [centerTrigger]);
 
   return (
-    <div className="relative w-full h-full">
-      <div ref={mapContainerRef} className="w-full h-full z-0" />
+    <div className="relative w-full h-full min-h-[300px]">
+      <div ref={mapContainerRef} className="absolute inset-0 w-full h-full z-0" />
 
       {/* Floating Basemap Selector */}
       <div className="absolute top-4 left-4 z-[400] flex bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 shadow-2xl text-xs font-semibold text-slate-300">
