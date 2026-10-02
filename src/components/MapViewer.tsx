@@ -421,12 +421,12 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPosition, mapReadyTick]);
 
-  // Re-center on centerTrigger change
+  // Re-center on centerTrigger change (Waze-like zoom)
   useEffect(() => {
-    if (!mapInstanceRef.current || centerTrigger === undefined) return;
-    mapInstanceRef.current.panTo([currentPosition.lat, currentPosition.lng], {
+    if (!mapInstanceRef.current || !centerTrigger) return; // ignore initial 0
+    mapInstanceRef.current.flyTo([currentPosition.lat, currentPosition.lng], 18, {
       animate: true,
-      duration: 0.6,
+      duration: 1.2,
     });
   }, [centerTrigger]);
 

@@ -84,9 +84,15 @@ export function App() {
     const created = await addStop(coords, type, undefined, position.accuracy);
     if (created) {
       setLastMarkedStop(created);
+      setCenterTrigger(prev => prev + 1); // trigger waze zoom
     }
     return created;
   }, [addStop, position]);
+
+  const handleStartRecording = useCallback(() => {
+    startRecording();
+    setCenterTrigger(prev => prev + 1); // trigger waze zoom
+  }, [startRecording]);
 
   // Undo last marked stop
   const handleUndoLastStop = useCallback(async () => {
@@ -225,7 +231,7 @@ export function App() {
               currentPosition={position}
               onMarkStop={handleMarkStop}
               isRecording={isRecording}
-              onStartRecording={startRecording}
+              onStartRecording={handleStartRecording}
               onStopRecording={stopRecording}
               recordedPointsCount={recordedPoints.length}
               recordedDistanceMeters={totalRecordedDistanceMeters}
