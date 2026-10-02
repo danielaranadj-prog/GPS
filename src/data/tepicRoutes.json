@@ -1,0 +1,829 @@
+[
+  {
+    "id": "r-o-suchiate",
+    "code": "R-01",
+    "name": "Río Suchiate - Centro",
+    "agency": "SEMOVI Nayarit",
+    "category": "troncal",
+    "color": "#2563eb",
+    "ida": [
+      [21.5285, -104.8620],
+      [21.5230, -104.8710],
+      [21.5180, -104.8830],
+      [21.5140, -104.8920],
+      [21.5095, -104.8957],
+      [21.5034, -104.8950],
+      [21.4980, -104.8940]
+    ],
+    "vuelta": [
+      [21.4980, -104.8940],
+      [21.5034, -104.8950],
+      [21.5095, -104.8957],
+      [21.5140, -104.8920],
+      [21.5180, -104.8830],
+      [21.5230, -104.8710],
+      [21.5285, -104.8620]
+    ],
+    "notes": "Ruta troncal Suchiate por Av. Victoria y Av. México"
+  },
+  {
+    "id": "r-o-cantera-centro",
+    "code": "R-02",
+    "name": "Cantera - Hospitales - Centro",
+    "agency": "SEMOVI Nayarit",
+    "category": "troncal",
+    "color": "#0ea5e9",
+    "ida": [
+      [21.5320, -104.8210],
+      [21.5250, -104.8340],
+      [21.5180, -104.8510],
+      [21.5120, -104.8680],
+      [21.5070, -104.8830],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.5070, -104.8830],
+      [21.5120, -104.8680],
+      [21.5180, -104.8510],
+      [21.5250, -104.8340],
+      [21.5320, -104.8210]
+    ],
+    "notes": "Vistas de la Cantera, Av. Aguamilpa, Insurgentes y Centro"
+  },
+  {
+    "id": "r-o-progreso-uan",
+    "code": "R-03",
+    "name": "Progreso - Ciudad del Valle - UAN",
+    "agency": "SEMOVI Nayarit",
+    "category": "alimentadora",
+    "color": "#10b981",
+    "ida": [
+      [21.5380, -104.8820],
+      [21.5260, -104.8880],
+      [21.5150, -104.8920],
+      [21.5040, -104.8900],
+      [21.4920, -104.8870]
+    ],
+    "vuelta": [
+      [21.4920, -104.8870],
+      [21.5040, -104.8900],
+      [21.5150, -104.8920],
+      [21.5260, -104.8880],
+      [21.5380, -104.8820]
+    ],
+    "notes": "Colonia Progreso hacia el campus universitario UAN"
+  },
+  {
+    "id": "r-o-llanitos-centro",
+    "code": "R-04",
+    "name": "Llanitos - San Juan - Centro",
+    "agency": "SEMOVI Nayarit",
+    "category": "alimentadora",
+    "color": "#f59e0b",
+    "ida": [
+      [21.5450, -104.9120],
+      [21.5310, -104.9080],
+      [21.5200, -104.9010],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.5200, -104.9010],
+      [21.5310, -104.9080],
+      [21.5450, -104.9120]
+    ],
+    "notes": "Llanitos poniente pasando por San Juan"
+  },
+  {
+    "id": "r-o-xalisco-directo",
+    "code": "R-05",
+    "name": "Xalisco Directo - Insurgentes",
+    "agency": "SEMOVI Nayarit",
+    "category": "xalisco",
+    "color": "#8b5cf6",
+    "ida": [
+      [21.5095, -104.8957],
+      [21.4980, -104.8965],
+      [21.4850, -104.8975],
+      [21.4720, -104.8990],
+      [21.4580, -104.9005],
+      [21.4460, -104.9010]
+    ],
+    "vuelta": [
+      [21.4460, -104.9010],
+      [21.4580, -104.9005],
+      [21.4720, -104.8990],
+      [21.4850, -104.8975],
+      [21.4980, -104.8965],
+      [21.5095, -104.8957]
+    ],
+    "notes": "Corredor Tepic - Blvd. Tepic-Xalisco - Centro de Xalisco"
+  },
+  {
+    "id": "r-o-xalisco-prepa2",
+    "code": "R-06",
+    "name": "Xalisco - Prepa 2 - UT Nayarit",
+    "agency": "SEMOVI Nayarit",
+    "category": "xalisco",
+    "color": "#ec4899",
+    "ida": [
+      [21.5095, -104.8957],
+      [21.4890, -104.8960],
+      [21.4780, -104.8980],
+      [21.4550, -104.8995],
+      [21.4350, -104.8940]
+    ],
+    "vuelta": [
+      [21.4350, -104.8940],
+      [21.4550, -104.8995],
+      [21.4780, -104.8980],
+      [21.4890, -104.8960],
+      [21.5095, -104.8957]
+    ],
+    "notes": "Conecta con la Universidad Tecnológica en Xalisco"
+  },
+  {
+    "id": "r-o-mololoa-centro",
+    "code": "R-07",
+    "name": "Mololoa - Mercado de Abastos",
+    "agency": "SEMOVI Nayarit",
+    "category": "alimentadora",
+    "color": "#06b6d4",
+    "ida": [
+      [21.5310, -104.8950],
+      [21.5220, -104.8960],
+      [21.5140, -104.8960],
+      [21.5095, -104.8957],
+      [21.5010, -104.8860]
+    ],
+    "vuelta": [
+      [21.5010, -104.8860],
+      [21.5095, -104.8957],
+      [21.5140, -104.8960],
+      [21.5220, -104.8960],
+      [21.5310, -104.8950]
+    ],
+    "notes": "Av. México Norte hacia Mercado Abastos"
+  },
+  {
+    "id": "r-o-cuauhtemoc",
+    "code": "R-08",
+    "name": "Cuauhtémoc - Acaponeta - Panteón",
+    "agency": "SEMOVI Nayarit",
+    "category": "alimentadora",
+    "color": "#14b8a6",
+    "ida": [
+      [21.5250, -104.9120],
+      [21.5170, -104.9040],
+      [21.5095, -104.8957],
+      [21.5020, -104.9010]
+    ],
+    "vuelta": [
+      [21.5020, -104.9010],
+      [21.5095, -104.8957],
+      [21.5170, -104.9040],
+      [21.5250, -104.9120]
+    ],
+    "notes": "Cruza colonias del poniente histórico"
+  },
+  {
+    "id": "r-o-indeco-sauces",
+    "code": "R-09",
+    "name": "Indeco - Los Sauces - Forum",
+    "agency": "SEMOVI Nayarit",
+    "category": "troncal",
+    "color": "#6366f1",
+    "ida": [
+      [21.4820, -104.8620],
+      [21.4910, -104.8660],
+      [21.5010, -104.8620],
+      [21.5065, -104.8565],
+      [21.5140, -104.8720],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.5140, -104.8720],
+      [21.5065, -104.8565],
+      [21.5010, -104.8620],
+      [21.4910, -104.8660],
+      [21.4820, -104.8620]
+    ],
+    "notes": "Conecta Plaza Forum y colonias del suroriente"
+  },
+  {
+    "id": "r-o-mexico-xalisco",
+    "code": "R-10",
+    "name": "México - Central Camionera - Xalisco",
+    "agency": "SEMOVI Nayarit",
+    "category": "xalisco",
+    "color": "#d946ef",
+    "ida": [
+      [21.5280, -104.8965],
+      [21.5095, -104.8957],
+      [21.5020, -104.8740],
+      [21.4780, -104.8980],
+      [21.4460, -104.9010]
+    ],
+    "vuelta": [
+      [21.4460, -104.9010],
+      [21.4780, -104.8980],
+      [21.5020, -104.8740],
+      [21.5095, -104.8957],
+      [21.5280, -104.8965]
+    ],
+    "notes": "Conecta norte de Tepic con Central Camionera y Xalisco"
+  },
+  {
+    "id": "r-o-cantera-palacio",
+    "code": "R-11",
+    "name": "Cantera - Palacio de Gobierno - Allende",
+    "agency": "SEMOVI Nayarit",
+    "category": "troncal",
+    "color": "#3b82f6",
+    "ida": [
+      [21.5300, -104.8250],
+      [21.5220, -104.8480],
+      [21.5150, -104.8720],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.5150, -104.8720],
+      [21.5220, -104.8480],
+      [21.5300, -104.8250]
+    ],
+    "notes": "Acceso rápido Cantera por Av. Allende"
+  },
+  {
+    "id": "r-o-pedregal-centro",
+    "code": "R-12",
+    "name": "Pedregal - Insurgentes Poniente",
+    "agency": "SEMOVI Nayarit",
+    "category": "alimentadora",
+    "color": "#16a34a",
+    "ida": [
+      [21.5190, -104.9350],
+      [21.5120, -104.9180],
+      [21.5040, -104.9040],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.5040, -104.9040],
+      [21.5120, -104.9180],
+      [21.5190, -104.9350]
+    ],
+    "notes": "Colonia Pedregal y libramiento poniente"
+  },
+  {
+    "id": "r-o-san-juan-forum",
+    "code": "R-13",
+    "name": "San Juan - Centro - Forum Tepic",
+    "agency": "SEMOVI Nayarit",
+    "category": "troncal",
+    "color": "#e11d48",
+    "ida": [
+      [21.5180, -104.9220],
+      [21.5095, -104.8957],
+      [21.5040, -104.8720],
+      [21.5065, -104.8565]
+    ],
+    "vuelta": [
+      [21.5065, -104.8565],
+      [21.5040, -104.8720],
+      [21.5095, -104.8957],
+      [21.5180, -104.9220]
+    ],
+    "notes": "Eje Poniente-Oriente de San Juan a Plaza Forum"
+  },
+  {
+    "id": "r-o-bellavista-centro",
+    "code": "R-14",
+    "name": "Bellavista - Fábrica Textil - Centro",
+    "agency": "SEMOVI Nayarit",
+    "category": "suburbana",
+    "color": "#ca8a04",
+    "ida": [
+      [21.5580, -104.9150],
+      [21.5410, -104.9060],
+      [21.5250, -104.8980],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.5250, -104.8980],
+      [21.5410, -104.9060],
+      [21.5580, -104.9150]
+    ],
+    "notes": "Poblado histórico de Bellavista al Centro de Tepic"
+  },
+  {
+    "id": "r-o-ciudad-industrial",
+    "code": "R-15",
+    "name": "Ciudad Industrial - Jacarandas - UAN",
+    "agency": "SEMOVI Nayarit",
+    "category": "troncal",
+    "color": "#0284c7",
+    "ida": [
+      [21.5180, -104.8420],
+      [21.5080, -104.8620],
+      [21.4980, -104.8790],
+      [21.4920, -104.8870]
+    ],
+    "vuelta": [
+      [21.4920, -104.8870],
+      [21.4980, -104.8790],
+      [21.5080, -104.8620],
+      [21.5180, -104.8420]
+    ],
+    "notes": "Corredor obrero y estudiantil por Jacarandas"
+  },
+  {
+    "id": "r-o-valles-rodeo",
+    "code": "R-16",
+    "name": "Rodeo de la Cruz - Valle de Matatipac",
+    "agency": "SEMOVI Nayarit",
+    "category": "alimentadora",
+    "color": "#059669",
+    "ida": [
+      [21.5340, -104.8690],
+      [21.5210, -104.8820],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.5210, -104.8820],
+      [21.5340, -104.8690]
+    ],
+    "notes": "Conecta colonias del nororiente de Tepic"
+  },
+  {
+    "id": "r-o-xalisco-pantanal",
+    "code": "R-17",
+    "name": "Xalisco - El Pantanal - Tepic Centro",
+    "agency": "SEMOVI Nayarit",
+    "category": "xalisco",
+    "color": "#7c3aed",
+    "ida": [
+      [21.4320, -104.8620],
+      [21.4460, -104.9010],
+      [21.4780, -104.8980],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.4780, -104.8980],
+      [21.4460, -104.9010],
+      [21.4320, -104.8620]
+    ],
+    "notes": "Ruta rural y suburbana Pantanal - Xalisco - Tepic"
+  },
+  {
+    "id": "r-o-circunvalacion-1",
+    "code": "R-18",
+    "name": "Circunvalación Interior 1 (Horario)",
+    "agency": "SEMOVI Nayarit",
+    "category": "troncal",
+    "color": "#f97316",
+    "ida": [
+      [21.5150, -104.8960],
+      [21.5110, -104.8780],
+      [21.4980, -104.8810],
+      [21.4950, -104.9030],
+      [21.5150, -104.8960]
+    ],
+    "vuelta": [
+      [21.5150, -104.8960],
+      [21.4950, -104.9030],
+      [21.4980, -104.8810],
+      [21.5110, -104.8780],
+      [21.5150, -104.8960]
+    ],
+    "notes": "Anillo periférico interior sentido horario"
+  },
+  {
+    "id": "r-o-circunvalacion-2",
+    "code": "R-19",
+    "name": "Circunvalación Interior 2 (Antihorario)",
+    "agency": "SEMOVI Nayarit",
+    "category": "troncal",
+    "color": "#ea580c",
+    "ida": [
+      [21.5150, -104.8960],
+      [21.4950, -104.9030],
+      [21.4980, -104.8810],
+      [21.5110, -104.8780],
+      [21.5150, -104.8960]
+    ],
+    "vuelta": [
+      [21.5150, -104.8960],
+      [21.5110, -104.8780],
+      [21.4980, -104.8810],
+      [21.4950, -104.9030],
+      [21.5150, -104.8960]
+    ],
+    "notes": "Anillo periférico interior antihorario"
+  },
+  {
+    "id": "r-o-zapopan-centro",
+    "code": "R-20",
+    "name": "Colonia Zapopan - Mololoa - Centro",
+    "agency": "SEMOVI Nayarit",
+    "category": "alimentadora",
+    "color": "#0284c7",
+    "ida": [
+      [21.5240, -104.8820],
+      [21.5160, -104.8890],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.5160, -104.8890],
+      [21.5240, -104.8820]
+    ],
+    "notes": "Colonia Zapopan por puente Mololoa"
+  },
+  {
+    "id": "r-o-lindavista-centro",
+    "code": "R-21",
+    "name": "Lindavista - Mirador - Centro",
+    "agency": "SEMOVI Nayarit",
+    "category": "alimentadora",
+    "color": "#0d9488",
+    "ida": [
+      [21.5010, -104.9190],
+      [21.5040, -104.9070],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.5040, -104.9070],
+      [21.5010, -104.9190]
+    ],
+    "notes": "Colonia Lindavista zona alta"
+  },
+  {
+    "id": "r-o-la-penita-tepic",
+    "code": "R-22",
+    "name": "Las Peñitas - Gobernadores - Centro",
+    "agency": "SEMOVI Nayarit",
+    "category": "alimentadora",
+    "color": "#15803d",
+    "ida": [
+      [21.5360, -104.8940],
+      [21.5230, -104.8950],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.5230, -104.8950],
+      [21.5360, -104.8940]
+    ],
+    "notes": "Av. Gobernadores y Las Peñitas"
+  },
+  {
+    "id": "r-o-villas-robles",
+    "code": "R-23",
+    "name": "Villas del Roble - Lagos del Country",
+    "agency": "SEMOVI Nayarit",
+    "category": "alimentadora",
+    "color": "#b45309",
+    "ida": [
+      [21.4870, -104.8510],
+      [21.4980, -104.8690],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.4980, -104.8690],
+      [21.4870, -104.8510]
+    ],
+    "notes": "Fraccionamiento Villas del Roble"
+  },
+  {
+    "id": "r-o-san-cayetano-tepic",
+    "code": "R-24",
+    "name": "San Cayetano - Tepic Centro",
+    "agency": "SEMOVI Nayarit",
+    "category": "suburbana",
+    "color": "#9333ea",
+    "ida": [
+      [21.4550, -104.8150],
+      [21.4850, -104.8450],
+      [21.5050, -104.8720],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.5050, -104.8720],
+      [21.4850, -104.8450],
+      [21.4550, -104.8150]
+    ],
+    "notes": "Poblado San Cayetano carretera libre Guadalajara"
+  },
+  {
+    "id": "r-o-paraiso-tepic",
+    "code": "R-25",
+    "name": "Paraíso - Insurgentes Oriente",
+    "agency": "SEMOVI Nayarit",
+    "category": "alimentadora",
+    "color": "#4338ca",
+    "ida": [
+      [21.5210, -104.8580],
+      [21.5120, -104.8750],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.5120, -104.8750],
+      [21.5210, -104.8580]
+    ],
+    "notes": "Colonia Paraíso y Fovissste"
+  },
+  {
+    "id": "r-o-xalisco-campestre",
+    "code": "R-26",
+    "name": "Xalisco Campestre - La Fe",
+    "agency": "SEMOVI Nayarit",
+    "category": "xalisco",
+    "color": "#be185d",
+    "ida": [
+      [21.4420, -104.9120],
+      [21.4510, -104.9030],
+      [21.4780, -104.8980],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.4780, -104.8980],
+      [21.4510, -104.9030],
+      [21.4420, -104.9120]
+    ],
+    "notes": "Fraccionamientos Campestre de Xalisco"
+  },
+  {
+    "id": "r-o-morelos-centro",
+    "code": "R-27",
+    "name": "Colonia Morelos - Av. Allende - Centro",
+    "agency": "SEMOVI Nayarit",
+    "category": "alimentadora",
+    "color": "#047857",
+    "ida": [
+      [21.5180, -104.8790],
+      [21.5130, -104.8870],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.5130, -104.8870],
+      [21.5180, -104.8790]
+    ],
+    "notes": "Ruta por calle Morelos y Centro Histórico"
+  },
+  {
+    "id": "r-o-san-juan-hospitales",
+    "code": "R-28",
+    "name": "San Juan - IMSS 1 - Hospital General",
+    "agency": "SEMOVI Nayarit",
+    "category": "troncal",
+    "color": "#0369a1",
+    "ida": [
+      [21.5210, -104.9210],
+      [21.5095, -104.8957],
+      [21.5040, -104.8810],
+      [21.5110, -104.8640]
+    ],
+    "vuelta": [
+      [21.5110, -104.8640],
+      [21.5040, -104.8810],
+      [21.5095, -104.8957],
+      [21.5210, -104.9210]
+    ],
+    "notes": "Corredor hospitalario de Tepic"
+  },
+  {
+    "id": "r-o-los-fresnos-uan",
+    "code": "R-29",
+    "name": "Los Fresnos - UAN - Ixtlán",
+    "agency": "SEMOVI Nayarit",
+    "category": "alimentadora",
+    "color": "#a21caf",
+    "ida": [
+      [21.4980, -104.9080],
+      [21.4940, -104.8960],
+      [21.4920, -104.8870]
+    ],
+    "vuelta": [
+      [21.4920, -104.8870],
+      [21.4940, -104.8960],
+      [21.4980, -104.9080]
+    ],
+    "notes": "Colonia Los Fresnos a Ciudad de la Cultura"
+  },
+  {
+    "id": "r-o-cantera-sauces",
+    "code": "R-30",
+    "name": "Cantera - Insurgentes - Sauces",
+    "agency": "SEMOVI Nayarit",
+    "category": "troncal",
+    "color": "#374151",
+    "ida": [
+      [21.5320, -104.8210],
+      [21.5180, -104.8510],
+      [21.4980, -104.8690],
+      [21.4880, -104.8680]
+    ],
+    "vuelta": [
+      [21.4880, -104.8680],
+      [21.4980, -104.8690],
+      [21.5180, -104.8510],
+      [21.5320, -104.8210]
+    ],
+    "notes": "Cantera cruzando todo el oriente hacia Sauces"
+  },
+  {
+    "id": "r-o-xalisco-libramiento",
+    "code": "R-31",
+    "name": "Xalisco - Libramiento Nogales",
+    "agency": "SEMOVI Nayarit",
+    "category": "xalisco",
+    "color": "#4f46e5",
+    "ida": [
+      [21.4460, -104.9010],
+      [21.4680, -104.9050],
+      [21.4890, -104.9180],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.4890, -104.9180],
+      [21.4680, -104.9050],
+      [21.4460, -104.9010]
+    ],
+    "notes": "Xalisco por Libramiento hacia entronque Nogales"
+  },
+  {
+    "id": "r-o-zapopan-forum",
+    "code": "R-32",
+    "name": "Zapopan - Plaza Forum - Tecnológico",
+    "agency": "SEMOVI Nayarit",
+    "category": "alimentadora",
+    "color": "#0284c7",
+    "ida": [
+      [21.5240, -104.8820],
+      [21.5120, -104.8680],
+      [21.5065, -104.8565],
+      [21.4980, -104.8620]
+    ],
+    "vuelta": [
+      [21.4980, -104.8620],
+      [21.5065, -104.8565],
+      [21.5120, -104.8680],
+      [21.5240, -104.8820]
+    ],
+    "notes": "Zapopan hacia Instituto Tecnológico de Tepic"
+  },
+  {
+    "id": "r-o-amatlan-centro",
+    "code": "R-33",
+    "name": "Amatlán de Jora - Tepic Centro",
+    "agency": "SEMOVI Nayarit",
+    "category": "suburbana",
+    "color": "#b91c1c",
+    "ida": [
+      [21.5620, -104.8650],
+      [21.5340, -104.8820],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.5340, -104.8820],
+      [21.5620, -104.8650]
+    ],
+    "notes": "Ruta suburbana norte de Tepic"
+  },
+  {
+    "id": "r-o-la-loma-centro",
+    "code": "R-34",
+    "name": "Parque La Loma - Ciudad del Valle",
+    "agency": "SEMOVI Nayarit",
+    "category": "alimentadora",
+    "color": "#15803d",
+    "ida": [
+      [21.5040, -104.8990],
+      [21.4980, -104.8965],
+      [21.4920, -104.8870]
+    ],
+    "vuelta": [
+      [21.4920, -104.8870],
+      [21.4980, -104.8965],
+      [21.5040, -104.8990]
+    ],
+    "notes": "Circuito Parque La Loma hacia Ciudad del Valle"
+  },
+  {
+    "id": "r-o-mololoa-uan",
+    "code": "R-35",
+    "name": "Mololoa - Jacarandas - UAN Directo",
+    "agency": "SEMOVI Nayarit",
+    "category": "troncal",
+    "color": "#0284c7",
+    "ida": [
+      [21.5310, -104.8950],
+      [21.5140, -104.8860],
+      [21.4980, -104.8820],
+      [21.4920, -104.8870]
+    ],
+    "vuelta": [
+      [21.4920, -104.8870],
+      [21.4980, -104.8820],
+      [21.5140, -104.8860],
+      [21.5310, -104.8950]
+    ],
+    "notes": "Mololoa directo a Universidad sin pasar por Centro"
+  },
+  {
+    "id": "r-o-san-andres-xalisco",
+    "code": "R-36",
+    "name": "San Andrés - Xalisco Centro",
+    "agency": "SEMOVI Nayarit",
+    "category": "xalisco",
+    "color": "#6d28d9",
+    "ida": [
+      [21.4280, -104.9250],
+      [21.4460, -104.9010],
+      [21.4780, -104.8980]
+    ],
+    "vuelta": [
+      [21.4780, -104.8980],
+      [21.4460, -104.9010],
+      [21.4280, -104.9250]
+    ],
+    "notes": "Comunidad San Andrés hacia Xalisco y Tepic sur"
+  },
+  {
+    "id": "r-o-cantera-directo",
+    "code": "R-37",
+    "name": "Cantera Exprés - Av. Victoria",
+    "agency": "SEMOVI Nayarit",
+    "category": "troncal",
+    "color": "#0284c7",
+    "ida": [
+      [21.5350, -104.8180],
+      [21.5220, -104.8450],
+      [21.5110, -104.8780],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.5110, -104.8780],
+      [21.5220, -104.8450],
+      [21.5350, -104.8180]
+    ],
+    "notes": "Servicio exprés Cantera por vías rápidas"
+  },
+  {
+    "id": "r-o-libramiento-aeropuerto",
+    "code": "R-38",
+    "name": "Libramiento - Pantanal - Aeropuerto Tepic",
+    "agency": "SEMOVI Nayarit",
+    "category": "suburbana",
+    "color": "#047857",
+    "ida": [
+      [21.5095, -104.8957],
+      [21.4850, -104.8710],
+      [21.4420, -104.8510],
+      [21.4180, -104.8430]
+    ],
+    "vuelta": [
+      [21.4180, -104.8430],
+      [21.4420, -104.8510],
+      [21.4850, -104.8710],
+      [21.5095, -104.8957]
+    ],
+    "notes": "Conexión estratégica hacia el Aeropuerto Internacional Amado Nervo"
+  },
+  {
+    "id": "r-o-nueva-xalisco",
+    "code": "R-39",
+    "name": "Nueva Xalisco - Fracc. Canoas - Centro",
+    "agency": "SEMOVI Nayarit",
+    "category": "xalisco",
+    "color": "#c026d3",
+    "ida": [
+      [21.4410, -104.8950],
+      [21.4580, -104.8990],
+      [21.4780, -104.8980],
+      [21.5095, -104.8957]
+    ],
+    "vuelta": [
+      [21.5095, -104.8957],
+      [21.4780, -104.8980],
+      [21.4580, -104.8990],
+      [21.4410, -104.8950]
+    ],
+    "notes": "Recorrido por nuevos desarrollos urbanos de Xalisco"
+  }
+]

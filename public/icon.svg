@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+  <!-- Background with rounded squircle -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  
+  <!-- Map Grid lines -->
+  <path d="M64 160h384M64 256h384M64 352h384M160 64v384M256 64v384M352 64v384" stroke="#334155" stroke-width="6" stroke-dasharray="8 8" opacity="0.4"/>
+  
+  <!-- Transit route polyline -->
+  <path d="M120 380 Q 200 350 220 270 T 340 180 T 400 130" fill="none" stroke="url(#accentGrad)" stroke-width="24" stroke-linecap="round"/>
+  
+  <!-- Route glow -->
+  <path d="M120 380 Q 200 350 220 270 T 340 180 T 400 130" fill="none" stroke="#10b981" stroke-width="36" stroke-linecap="round" opacity="0.25"/>
+
+  <!-- GPS Pin -->
+  <g transform="translate(256, 210)">
+    <circle cx="0" cy="0" r="64" fill="#ef4444" filter="drop-shadow(0 8px 16px rgba(239, 68, 68, 0.4))"/>
+    <circle cx="0" cy="0" r="28" fill="#ffffff"/>
+    <path d="M-8 48 L0 80 L8 48 Z" fill="#ef4444"/>
+    <!-- Center pulse dot -->
+    <circle cx="0" cy="0" r="14" fill="#ef4444"/>
+  </g>
+  
+  <!-- Sub-stop dots -->
+  <circle cx="120" cy="380" r="18" fill="#10b981" stroke="#ffffff" stroke-width="6"/>
+  <circle cx="220" cy="270" r="18" fill="#f59e0b" stroke="#ffffff" stroke-width="6"/>
+  <circle cx="400" cy="130" r="18" fill="#8b5cf6" stroke="#ffffff" stroke-width="6"/>
+  
+  <!-- Bus icon simplified in corner -->
+  <rect x="70" y="70" width="80" height="52" rx="12" fill="#3b82f6"/>
+  <rect x="80" y="80" width="60" height="22" rx="4" fill="#ffffff" opacity="0.9"/>
+  <circle cx="86" cy="116" r="6" fill="#0f172a"/>
+  <circle cx="134" cy="116" r="6" fill="#0f172a"/>
+</svg>

@@ -1,0 +1,26 @@
+{
+  "name": "Tepic Transit Studio",
+  "short_name": "Transit Studio",
+  "description": "Mapeador de Paradas y Rutas de Transporte Público para Tepic y Xalisco",
+  "start_url": "/mapper/",
+  "scope": "/mapper/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/mapper/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/mapper/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["navigation", "transportation", "utilities"]
+}
