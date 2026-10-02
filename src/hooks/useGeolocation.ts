@@ -61,11 +61,11 @@ export function useGeolocation({ officialPath }: GeolocationHookProps) {
     const analysis = analyzePointDeviation({ lat, lng }, officialPath);
 
     if (analysis.isDeviated) {
-      if (!wasDeviatedRef.current) {
-        // Just started deviating
+      if (!wasDeviatedRef.current && (isRecording || isSimulating)) {
+        // Just started deviating while recording or simulating
         feedbackService.playWarning();
-        wasDeviatedRef.current = true;
       }
+      wasDeviatedRef.current = true;
       deviationPointsRef.current.push([lat, lng]);
 
       const accumulated = calculatePolylineDistance(deviationPointsRef.current);
@@ -232,6 +232,18 @@ export function useGeolocation({ officialPath }: GeolocationHookProps) {
     });
   }, []);
 
+  const clearDeviation = useCallback(() => {
+    deviationPointsRef.current = [];
+    wasDeviatedRef.current = false;
+    setDeviationStatus({
+      isDeviated: false,
+      currentDistanceMeters: 0,
+      maxDistanceMeters: 0,
+      accumulatedDistanceMeters: 0,
+      deviationPoints: [],
+    });
+  }, []);
+
   const toggleSimulation = useCallback(() => {
     setIsSimulating(prev => !prev);
   }, []);
@@ -250,6 +262,7 @@ export function useGeolocation({ officialPath }: GeolocationHookProps) {
     startRecording,
     stopRecording,
     clearRecording,
+    clearDeviation,
     deviationStatus,
     isSimulating,
     toggleSimulation,

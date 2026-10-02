@@ -20,6 +20,7 @@ export function App() {
   const [routeModalMode, setRouteModalMode] = useState<'new' | 'variant' | null>(null);
   const [lastMarkedStop, setLastMarkedStop] = useState<Stop | null>(null);
   const [centerTrigger, setCenterTrigger] = useState(0);
+  const [isDeviationDismissed, setIsDeviationDismissed] = useState(false);
 
   // Initialize DB and seed default 39 Tepic SEMOVI routes
   useEffect(() => {
@@ -65,6 +66,7 @@ export function App() {
     startRecording,
     stopRecording,
     clearRecording,
+    clearDeviation,
     deviationStatus,
     isSimulating,
     toggleSimulation,
@@ -207,9 +209,14 @@ export function App() {
           <DeviationBanner
             deviationStatus={deviationStatus}
             routeName={selectedRoute?.name || 'Ruta'}
+            isDismissed={isDeviationDismissed}
             onSaveAsVariant={() => setRouteModalMode('variant')}
             onAcceptTrace={handleAcceptTrace}
-            onDismiss={() => {}}
+            onDismiss={() => {
+              setIsDeviationDismissed(true);
+              clearDeviation();
+            }}
+            onReopen={() => setIsDeviationDismissed(false)}
           />
 
           {/* iPhone Ergonomic Field Thumb Bar */}
