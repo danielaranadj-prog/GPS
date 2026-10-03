@@ -5,9 +5,12 @@ import type { Stop, RouteItem, DirectionType, StopType, Coordinates } from '../t
 import { feedbackService } from '../services/sound';
 import { reverseGeocode } from '../services/nominatim';
 
+import * as turf from '@turf/turf';
+
 export function useTransitData() {
   const routes = useLiveQuery(() => db.routes.toArray(), []) || [];
   const [selectedRouteId, setSelectedRouteId] = useState<string>('r-o-suchiate');
+  const [visibleRouteIds, setVisibleRouteIds] = useState<string[]>(['r-o-suchiate']);
   const [direction, setDirection] = useState<DirectionType>('ida');
 
   // Fallback to first route if selected not found
@@ -16,25 +19,47 @@ export function useTransitData() {
   // Stops for current route and direction
   const stops = useLiveQuery(
     async () => {
-      if (!selectedRouteId) return [];
-      const allStops = await db.stops
-        .where('direction')
-        .equals(direction)
-        .toArray();
+      if (visibleRouteIds.length === 0) return [];
+      const allStops = await db.stops.toArray();
+      
+      // Para la vista principal, obtenemos las paradas de todas las rutas visibles
+      const routeStops = allStops.filter(s => (s.routeIds || []).some(id => visibleRouteIds.includes(id)));
 
-      return allStops
-        .filter(s => s.routeIds.includes(selectedRouteId))
-        .sort((a, b) => a.sequence - b.sequence);
+      // El filtro estricto de 1m y orientación solo aplica si hay una única ruta activa
+      const baseCoords = selectedRoute?.ida;
+      if (!selectedRoute || !baseCoords || baseCoords.length < 2 || visibleRouteIds.length > 1) {
+        return routeStops.sort((a, b) => a.sequence - b.sequence);
+      }
+
+      const baseLine = turf.lineString(baseCoords.map(p => [p[1], p[0]]));
+
+      return routeStops
+        .map(stop => {
+          const pt = turf.point([stop.coordinates.lng, stop.coordinates.lat]);
+          const nearest = turf.nearestPointOnLine(baseLine, pt);
+          const distanceToLine = turf.distance(pt, nearest, { units: 'meters' });
+          return {
+            stop,
+            distanceToLine,
+            locationAlongLine: nearest.properties?.location ?? 0
+          };
+        })
+        .filter(item => item.distanceToLine <= 1.5) // Max 1 metro (1.5 for float tolerance)
+        .sort((a, b) => a.locationAlongLine - b.locationAlongLine) // De acuerdo a su orientación/trazo
+        .map(item => item.stop);
     },
-    [selectedRouteId, direction]
+    [selectedRouteId, selectedRoute, visibleRouteIds]
   ) || [];
 
   // Set default route once routes load
   useEffect(() => {
     if (routes.length > 0 && !routes.some(r => r.id === selectedRouteId)) {
       setSelectedRouteId(routes[0].id);
+      setVisibleRouteIds([routes[0].id]);
+    } else if (routes.length > 0 && visibleRouteIds.length === 0) {
+      setVisibleRouteIds([selectedRouteId]);
     }
-  }, [routes, selectedRouteId]);
+  }, [routes, selectedRouteId, visibleRouteIds.length]);
 
   // Add stop with auto-naming, sequence calculation and tactile chime
   const addStop = useCallback(async (
@@ -45,15 +70,27 @@ export function useTransitData() {
   ) => {
     if (!selectedRoute) return null;
 
+    
     const currentSequence = stops.length + 1;
     let stopName = customName;
 
+    // Snap to route geometry to survive the strict 1.5m filter
+    let finalCoords = coords;
+    const baseCoords = selectedRoute.ida;
+    if (baseCoords && baseCoords.length >= 2) {
+      const pt = turf.point([coords.lng, coords.lat]);
+      const baseLine = turf.lineString(baseCoords.map(p => [p[1], p[0]]));
+      const nearest = turf.nearestPointOnLine(baseLine, pt);
+      finalCoords = { lat: nearest.geometry.coordinates[1], lng: nearest.geometry.coordinates[0] };
+    }
+
     if (!stopName) {
       // Reverse geocode street name
-      stopName = await reverseGeocode(coords.lat, coords.lng);
+      stopName = await reverseGeocode(finalCoords.lat, finalCoords.lng);
     }
 
     // Generate unique ID slug
+
     const cleanSlug = stopName
       .toLowerCase()
       .normalize("NFD")
@@ -66,7 +103,7 @@ export function useTransitData() {
     const newStop: Stop = {
       id: stopId,
       name: stopName,
-      coordinates: coords,
+      coordinates: finalCoords,
       type,
       routeIds: [selectedRoute.id],
       direction,
@@ -94,10 +131,7 @@ export function useTransitData() {
 
     // Re-index remaining stops
     if (selectedRouteId) {
-      const remaining = await db.stops
-        .where('direction')
-        .equals(direction)
-        .toArray();
+      const remaining = await db.stops.toArray();
 
       const routeStops = remaining
         .filter(s => s.routeIds.includes(selectedRouteId))
@@ -109,7 +143,26 @@ export function useTransitData() {
     }
   }, [selectedRouteId, direction]);
 
+
+  const deleteRoutes = useCallback(async (ids: string[]) => {
+    await db.routes.bulkDelete(ids);
+    const remainingStops = await db.stops.toArray();
+    for (const stop of remainingStops) {
+      const newRouteIds = (stop.routeIds || []).filter(id => !ids.includes(id));
+      if (newRouteIds.length === 0) {
+        await db.stops.delete(stop.id);
+      } else if (newRouteIds.length !== (stop.routeIds || []).length) {
+        await db.stops.update(stop.id, { routeIds: newRouteIds });
+      }
+    }
+    if (ids.includes(selectedRouteId)) {
+      setSelectedRouteId('r-o-suchiate'); // will fallback
+    }
+    setVisibleRouteIds(prev => prev.filter(id => !ids.includes(id)));
+  }, [selectedRouteId]);
+
   // Move stop up or down in order
+
   const reorderStop = useCallback(async (stopId: string, targetIndex: number) => {
     const list = [...stops];
     const currentIndex = list.findIndex(s => s.id === stopId);
@@ -180,6 +233,9 @@ export function useTransitData() {
     selectedRoute,
     selectedRouteId,
     setSelectedRouteId,
+    visibleRouteIds,
+    setVisibleRouteIds,
+    deleteRoutes,
     direction,
     setDirection,
     stops,

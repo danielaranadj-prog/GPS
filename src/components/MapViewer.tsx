@@ -10,11 +10,15 @@ interface MapViewerProps {
     heading: number | null;
   };
   selectedRoute: RouteItem | null;
+  visibleRouteIds: string[];
+  routes: RouteItem[];
   direction: DirectionType;
   stops: Stop[];
   recordedPoints: GpsBreadcrumb[];
   deviationPoints: [number, number][];
   isDesktopMode: boolean;
+  isEditingRoute?: boolean;
+  onRouteTraceEdited?: (newCoords: [number, number][]) => void;
   onStopDragEnd?: (stopId: string, newCoords: Coordinates) => void;
   onMapClick?: (coords: Coordinates) => void;
   centerTrigger?: number;
@@ -23,11 +27,15 @@ interface MapViewerProps {
 export const MapViewer: React.FC<MapViewerProps> = ({
   currentPosition,
   selectedRoute,
+  visibleRouteIds,
+  routes,
   direction,
   stops,
   recordedPoints,
   deviationPoints,
   isDesktopMode,
+  isEditingRoute,
+  onRouteTraceEdited,
   onStopDragEnd,
   onMapClick,
   centerTrigger,
@@ -45,6 +53,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   const accuracyCircleRef = useRef<L.Circle | null>(null);
   const stopsLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const terminusGroupRef = useRef<L.LayerGroup | null>(null);
+  const visibleRoutesGroupRef = useRef<L.LayerGroup | null>(null);
 
   type BasemapType = 'google-streets' | 'google-hybrid' | 'osm' | 'dark';
   const [basemap, setBasemap] = useState<BasemapType>('google-streets');
@@ -96,9 +105,14 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     const stopsGroup = L.layerGroup().addTo(map);
     stopsLayerGroupRef.current = stopsGroup;
 
+
     // Layer group for start/end terminus markers
     const terminusGroup = L.layerGroup().addTo(map);
     terminusGroupRef.current = terminusGroup;
+
+    const visibleGroup = L.layerGroup().addTo(map);
+    visibleRoutesGroupRef.current = visibleGroup;
+
 
     mapInstanceRef.current = map;
     mapReadyRef.current = true;
@@ -179,85 +193,109 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     };
   }, [isDesktopMode, onMapClick]);
 
-  // Render Official SEMOVI Route Line
+  
+  // Render Official SEMOVI Route Line(s)
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !mapReadyRef.current) return;
 
-    if (officialLineRef.current) officialLineRef.current.remove();
-    if (officialGlowLineRef.current) officialGlowLineRef.current.remove();
-    if (terminusGroupRef.current) terminusGroupRef.current.clearLayers();
-
-    if (!selectedRoute) return;
-    const pathCoords = direction === 'ida' ? selectedRoute.ida : selectedRoute.vuelta;
-    if (!pathCoords || pathCoords.length < 2) return;
-
-    const routeColor = selectedRoute.color || '#2563eb';
-
-    // High-contrast dark outline / casing so it pops out on satellite or Google streets
-    officialGlowLineRef.current = L.polyline(pathCoords, {
-      color: '#090d16',
-      weight: 8,
-      opacity: 0.85,
-      lineCap: 'round',
-      lineJoin: 'round',
-    }).addTo(map);
-
-    // Core crisp vibrant transit line
-    officialLineRef.current = L.polyline(pathCoords, {
-      color: routeColor,
-      weight: 5,
-      opacity: 1,
-      lineCap: 'round',
-      lineJoin: 'round',
-    }).addTo(map);
-
-    // Terminus badges (Start 🚩 and End 🏁)
+    if (visibleRoutesGroupRef.current) {
+      visibleRoutesGroupRef.current.clearLayers();
+    }
     if (terminusGroupRef.current) {
-      const startPt = pathCoords[0];
-      const endPt = pathCoords[pathCoords.length - 1];
-
-      const startIcon = L.divIcon({
-        className: 'start-badge-icon',
-        html: `
-          <div class="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-extrabold text-[10px] shadow-lg border border-white flex items-center gap-1 whitespace-nowrap">
-            <span>🚩 Inicio</span>
-          </div>
-        `,
-        iconSize: [60, 22],
-        iconAnchor: [30, 26],
-      });
-      terminusGroupRef.current.addLayer(L.marker(startPt, { icon: startIcon, interactive: false }));
-
-      const endIcon = L.divIcon({
-        className: 'end-badge-icon',
-        html: `
-          <div class="px-2 py-0.5 rounded-full bg-rose-600 text-white font-extrabold text-[10px] shadow-lg border border-white flex items-center gap-1 whitespace-nowrap">
-            <span>🏁 Terminal</span>
-          </div>
-        `,
-        iconSize: [68, 22],
-        iconAnchor: [34, 26],
-      });
-      terminusGroupRef.current.addLayer(L.marker(endPt, { icon: endIcon, interactive: false }));
+      terminusGroupRef.current.clearLayers();
     }
 
-    // Automatically center and zoom to fit the selected route bounds!
-    try {
-      const bounds = L.latLngBounds(pathCoords);
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, {
-          padding: [60, 60],
-          maxZoom: 16,
-          animate: true,
-          duration: 0.8,
+    const visibleRoutes = routes.filter(r => visibleRouteIds.includes(r.id));
+    
+    // Bounds for all visible routes
+    let allCoords: [number, number][] = [];
+
+    visibleRoutes.forEach(route => {
+      const pathCoords = direction === 'ida' ? route.ida : route.vuelta;
+      if (!pathCoords || pathCoords.length < 2) return;
+      allCoords.push(...pathCoords);
+
+      
+      const isComingSoon = route.status === 'coming_soon';
+      const routeColor = isComingSoon ? '#64748b' : (route.color || '#2563eb');
+      const isInteractive = isEditingRoute && visibleRouteIds.length === 1 && route.id === selectedRoute?.id;
+
+      const glow = L.polyline(pathCoords, {
+        color: '#090d16',
+        weight: 8,
+        opacity: isComingSoon ? 0.3 : 0.85,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false,
+      });
+      
+      const line = L.polyline(pathCoords, {
+        color: routeColor,
+        weight: 5,
+        opacity: isComingSoon ? 0.5 : 1,
+        dashArray: isComingSoon ? '10, 10' : undefined,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: isInteractive,
+      });
+
+      // If not interactive, bubble clicks to the map just in case (though interactive: false handles it)
+      if (!isInteractive) {
+         // interactive: false makes it ignore pointer events in Leaflet 1.0+
+      } else {
+         // When editing, we still want to add stops? No, when editing they are dragging vertices, not adding stops.
+      }
+
+      
+      
+      visibleRoutesGroupRef.current?.addLayer(glow);
+      visibleRoutesGroupRef.current?.addLayer(line);
+
+      // Only enable editing if ONE route is selected and we are in edit mode
+      if (isEditingRoute && visibleRouteIds.length === 1 && route.id === selectedRoute?.id && (L as any).pm) {
+        (line as any).pm.enable({
+          allowSelfIntersection: true,
+          preventMarkerRemoval: false,
         });
+
+        const handleEdit = () => {
+          const latlngs = line.getLatLngs() as L.LatLng[];
+          const coords = latlngs.map(ll => [ll.lat, ll.lng] as [number, number]);
+          if (onRouteTraceEdited) onRouteTraceEdited(coords);
+        };
+
+        line.on('pm:markerdragend', handleEdit);
+        line.on('pm:vertexadded', handleEdit);
+        line.on('pm:vertexremoved', handleEdit);
+        line.on('pm:cut', handleEdit);
+      }
+
+      // Terminus badges only for the active selected route
+      if (route.id === selectedRoute?.id && terminusGroupRef.current) {
+        const startPt = pathCoords[0];
+        const endPt = pathCoords[pathCoords.length - 1];
+
+        L.marker(startPt, {
+          icon: L.divIcon({ className: 'custom-terminus-icon', html: '🚩', iconSize: [24, 24] })
+        }).addTo(terminusGroupRef.current);
+
+        L.marker(endPt, {
+          icon: L.divIcon({ className: 'custom-terminus-icon', html: '🏁', iconSize: [24, 24] })
+        }).addTo(terminusGroupRef.current);
+      }
+    });
+
+    try {
+      if (allCoords.length > 0 && mapReadyTick > 0) {
+        map.fitBounds(allCoords, { padding: [50, 50], animate: true, duration: 1 });
       }
     } catch (e) {
       console.warn('fitBounds error:', e);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedRoute, direction, mapReadyTick]);
+  }, [routes, visibleRouteIds, selectedRoute, direction, mapReadyTick, isEditingRoute, onRouteTraceEdited]);
+
 
   // Render Street Recorded Track
   useEffect(() => {
@@ -319,8 +357,22 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         typeLabel = 'Base';
       }
 
+
+      let statusBadge = '';
+      const isOrphan = !stop.routeIds || stop.routeIds.length === 0;
+      const isLowAccuracy = stop.accuracy && stop.accuracy > 15;
+
+      if (isOrphan) {
+        badgeColor = '#f97316'; // orange-500
+        statusBadge = '<span class="px-1 py-0.5 bg-orange-500/20 text-orange-400 rounded uppercase text-[8px] font-black tracking-widest border border-orange-500/30">Huérfana</span>';
+      } else if (isLowAccuracy) {
+        badgeColor = '#f43f5e'; // rose-500
+        statusBadge = '<span class="px-1 py-0.5 bg-rose-500/20 text-rose-400 rounded uppercase text-[8px] font-black tracking-widest border border-rose-500/30">Mala Señal</span>';
+      }
+
       const iconHtml = `
-        <div class="relative flex items-center justify-center cursor-pointer group">
+
+        <div class="relative flex items-center justify-center cursor-pointer group" style="transform: rotate(var(--map-heading, 0deg)); transition: transform 0.3s ease-out; transform-origin: center bottom;">
           <div class="w-8 h-8 rounded-full border-2 border-white shadow-xl flex items-center justify-center font-bold text-xs text-white transition-transform transform active:scale-90"
                style="background-color: ${badgeColor}; box-shadow: 0 0 12px ${badgeColor}80;">
             ${stop.sequence}
@@ -339,12 +391,12 @@ export const MapViewer: React.FC<MapViewerProps> = ({
 
       const marker = L.marker([stop.coordinates.lat, stop.coordinates.lng], {
         icon: customIcon,
-        draggable: isDesktopMode,
+        draggable: true,
         title: `#${stop.sequence} ${stop.name}`,
       });
 
-      // Drag event for desktop sidewalk tuning
-      if (isDesktopMode && onStopDragEnd) {
+      // Drag event for sidewalk tuning
+      if (onStopDragEnd) {
         marker.on('dragend', (e) => {
           const latlng = (e.target as L.Marker).getLatLng();
           onStopDragEnd(stop.id, { lat: latlng.lat, lng: latlng.lng });
@@ -359,6 +411,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
               #${stop.sequence} ${typeLabel}
             </span>
             ${stop.accuracy ? `<span class="text-[10px] text-slate-500 font-medium">±${stop.accuracy}m</span>` : ''}
+            ${statusBadge}
           </div>
           <p class="font-bold text-sm text-slate-800 leading-tight">${stop.name}</p>
           <p class="text-[11px] text-slate-500 mt-1">Lat: ${stop.coordinates.lat.toFixed(5)}, Lng: ${stop.coordinates.lng.toFixed(5)}</p>
@@ -421,21 +474,66 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPosition, mapReadyTick]);
 
+  // -------------------------------------------------------------
+  // Navigation: Follow Mode & Rotation
+  // -------------------------------------------------------------
+  const [isFollowing, setIsFollowing] = useState(true);
+
+  // Re-center continuously if following
+  useEffect(() => {
+    if (isFollowing && mapInstanceRef.current && mapReadyRef.current) {
+      mapInstanceRef.current.panTo([currentPosition.lat, currentPosition.lng], { animate: true });
+    }
+  }, [currentPosition.lat, currentPosition.lng, isFollowing, mapReadyTick]);
+
+  // If user drags the map, disable follow mode
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !mapReadyRef.current) return;
+
+    const disableFollow = () => setIsFollowing(false);
+    map.on('dragstart', disableFollow);
+    
+    return () => {
+      map.off('dragstart', disableFollow);
+    };
+  }, [mapReadyTick]);
+
   // Re-center on centerTrigger change (Waze-like zoom)
   useEffect(() => {
     if (!mapInstanceRef.current || !centerTrigger) return; // ignore initial 0
+    setIsFollowing(true); // Reactivate follow mode
     mapInstanceRef.current.flyTo([currentPosition.lat, currentPosition.lng], 18, {
       animate: true,
       duration: 1.2,
     });
   }, [centerTrigger]);
 
+  // Update CSS variable for heading to rotate markers correctly
+  const heading = isFollowing ? (currentPosition.heading || 0) : 0;
+  useEffect(() => {
+    document.documentElement.style.setProperty('--map-heading', `${heading}deg`);
+  }, [heading]);
+
   return (
-    <div className="relative w-full h-full min-h-[300px]">
-      <div ref={mapContainerRef} className="absolute inset-0 w-full h-full z-0" />
+    <div className="relative w-full h-full min-h-[300px] bg-slate-900 overflow-hidden">
+      {/* Map Wrapper: oversized to avoid empty corners when rotated */}
+      <div 
+        className="absolute transition-transform duration-300 ease-out z-0 pointer-events-auto"
+        style={{
+          top: '-30%',
+          left: '-30%',
+          width: '160%',
+          height: '160%',
+          transform: `rotate(${-heading}deg)`,
+          transformOrigin: 'center center',
+        }}
+      >
+        <div ref={mapContainerRef} className="w-full h-full" />
+      </div>
 
       {/* Floating Basemap Selector */}
-      <div className="absolute top-4 left-4 z-[400] flex bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 shadow-2xl text-xs font-semibold text-slate-300 gap-1">
+      <div className="absolute top-4 left-4 z-[400] flex bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 shadow-2xl text-xs font-semibold text-slate-300 gap-1 pointer-events-auto">
         <button
           onClick={() => setBasemap('google-streets')}
           className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
@@ -469,6 +567,16 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           <span>Oscuro</span>
         </button>
       </div>
+      
+      {/* Follow mode indicator/button */}
+      {!isFollowing && (
+        <button 
+          onClick={() => setIsFollowing(true)}
+          className="absolute bottom-6 right-6 z-[400] bg-blue-600 text-white p-3 rounded-full shadow-lg border border-white/20 animate-bounce pointer-events-auto"
+        >
+          🎯 Centrar
+        </button>
+      )}
     </div>
   );
 };

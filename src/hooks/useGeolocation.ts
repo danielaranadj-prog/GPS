@@ -191,9 +191,17 @@ export function useGeolocation({ officialPath }: GeolocationHookProps) {
       // Add a tiny random jitter for realistic GPS accuracy
       const jitterLat = simLat + (Math.random() - 0.5) * 0.0001;
       const jitterLng = simLng + (Math.random() - 0.5) * 0.0001;
+      const prevIdx = idx === 0 ? 0 : idx - 1;
+      const [prevLat, prevLng] = simulationTrajectory[prevIdx];
+      const dLng = simLng - prevLng;
+      const dLat = simLat - prevLat;
+      let heading = 45;
+      if (idx !== 0 && (dLat !== 0 || dLng !== 0)) {
+        heading = (Math.atan2(dLng, dLat) * 180 / Math.PI + 360) % 360;
+      }
       const accuracy = 2.5 + Math.random() * 2;
 
-      handleNewCoordinate(jitterLat, jitterLng, accuracy, 28, 45);
+      handleNewCoordinate(jitterLat, jitterLng, accuracy, 28, heading);
       simulationStepRef.current += 1;
     }, 2500);
 
@@ -217,6 +225,13 @@ export function useGeolocation({ officialPath }: GeolocationHookProps) {
   const stopRecording = useCallback(() => {
     feedbackService.playToggle(false);
     setIsRecording(false);
+  }, []);
+
+  const loadTrack = useCallback((points: GpsBreadcrumb[]) => {
+    setRecordedPoints(points);
+    if (points.length > 0) {
+      setRecordingStartTime(points[0].timestamp);
+    }
   }, []);
 
   const clearRecording = useCallback(() => {
@@ -261,6 +276,7 @@ export function useGeolocation({ officialPath }: GeolocationHookProps) {
     totalRecordedDistanceMeters,
     startRecording,
     stopRecording,
+    loadTrack,
     clearRecording,
     clearDeviation,
     deviationStatus,

@@ -4,6 +4,8 @@ import {
   Radio,
   Square,
   CheckCircle2,
+  Lock,
+  Unlock,
   Clock,
   RotateCcw,
   Sparkles,
@@ -37,6 +39,7 @@ export const FieldControls: React.FC<FieldControlsProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<StopType>('costumbre');
   const [isMarking, setIsMarking] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
 
   const handleMark = async () => {
     if (isMarking) return;
@@ -56,6 +59,46 @@ export const FieldControls: React.FC<FieldControlsProps> = ({
       : `${recordedDistanceMeters} m`;
 
   return (
+    <>
+      {/* Screen Lock Overlay */}
+      {isLocked && (
+        <div className="fixed inset-0 z-[1000] bg-slate-950/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="flex flex-col items-center gap-6 max-w-xs text-center">
+            <div className="w-24 h-24 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center shadow-2xl shadow-black">
+              <Lock className="w-12 h-12 text-slate-400" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-white tracking-tight mb-2">Pantalla Bloqueada</h2>
+              <p className="text-sm text-slate-400">El GPS sigue grabando en segundo plano. Manten presionado el botón para desbloquear.</p>
+            </div>
+            
+            <button
+              onPointerDown={(e) => {
+                const target = e.currentTarget;
+                target.style.transform = 'scale(0.9)';
+                target.dataset.timer = setTimeout(() => {
+                  setIsLocked(false);
+                }, 1000) as any;
+              }}
+              onPointerUp={(e) => {
+                const target = e.currentTarget;
+                target.style.transform = 'scale(1)';
+                clearTimeout(parseInt(target.dataset.timer || '0'));
+              }}
+              onPointerLeave={(e) => {
+                const target = e.currentTarget;
+                target.style.transform = 'scale(1)';
+                clearTimeout(parseInt(target.dataset.timer || '0'));
+              }}
+              className="mt-8 px-8 py-4 rounded-3xl bg-slate-800 border-2 border-slate-700 text-slate-300 font-bold flex items-center gap-3 transition-all select-none"
+            >
+              <Unlock className="w-5 h-5" />
+              <span>Mantener presionado 1s</span>
+            </button>
+          </div>
+        </div>
+      )}
+
     <div className="absolute bottom-0 left-0 right-0 z-[500] p-3 md:p-4 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent pointer-events-none pb-[calc(env(safe-area-inset-bottom,16px)+12px)]">
       <div className="max-w-md mx-auto pointer-events-auto flex flex-col gap-2.5">
         
@@ -134,6 +177,15 @@ export const FieldControls: React.FC<FieldControlsProps> = ({
         {/* Action Buttons: Giant High-Impact Thumb Mark + GPS Recording */}
         <div className="flex items-stretch gap-2.5">
           
+          {/* Lock Screen Toggle */}
+          <button
+            onClick={() => setIsLocked(true)}
+            className="px-4 py-3.5 rounded-2xl flex flex-col items-center justify-center border border-slate-700/80 bg-slate-900/90 hover:bg-slate-800 text-slate-300 font-bold text-xs transition-all active:scale-95 shadow-xl shrink-0"
+          >
+            <Lock className="w-4 h-4 mb-1 text-slate-400" />
+            <span className="leading-tight text-[11px] whitespace-nowrap">Bloquear</span>
+          </button>
+          
           {/* Continuous Recording Toggle */}
           <button
             onClick={isRecording ? onStopRecording : onStartRecording}
@@ -170,7 +222,7 @@ export const FieldControls: React.FC<FieldControlsProps> = ({
           <button
             onClick={handleMark}
             disabled={isMarking}
-            className={`flex-1 py-4 px-4 rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-2.5 text-white transition-all transform active:scale-95 shadow-2xl relative overflow-hidden select-none ${
+            className={`flex-1 py-5 md:py-6 px-4 rounded-3xl font-black text-lg md:text-xl flex items-center justify-center gap-2.5 text-white transition-all transform active:scale-95 shadow-2xl relative overflow-hidden select-none ${
               selectedCategory === 'oficial'
                 ? 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 shadow-emerald-900/50 hover:from-emerald-500 hover:to-teal-500'
                 : selectedCategory === 'costumbre'
@@ -195,5 +247,6 @@ export const FieldControls: React.FC<FieldControlsProps> = ({
 
       </div>
     </div>
+    </>
   );
 };

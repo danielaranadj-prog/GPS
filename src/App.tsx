@@ -10,8 +10,15 @@ import { DeviationBanner } from './components/DeviationBanner';
 import { DesktopEditorDrawer } from './components/DesktopEditorDrawer';
 import { ExportModal } from './components/ExportModal';
 import { NewRouteModal } from './components/NewRouteModal';
+import { RouteManagerModal } from './components/RouteManagerModal';
+import { TelemetryHUD } from './components/TelemetryHUD';
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { StopType, Coordinates, Stop, RouteCategory } from './types';
+
+type HistoryAction = 
+  | { type: 'add_stop'; stopId: string }
+  | { type: 'move_stop'; stopId: string; oldCoords: Coordinates }
+  | { type: 'delete_stop'; stop: Stop };
 
 export function App() {
   const [isDbReady, setIsDbReady] = useState(false);
@@ -19,12 +26,20 @@ export function App() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [routeModalMode, setRouteModalMode] = useState<'new' | 'variant' | null>(null);
   const [lastMarkedStop, setLastMarkedStop] = useState<Stop | null>(null);
+  const [history, setHistory] = useState<HistoryAction[]>([]);
   const [centerTrigger, setCenterTrigger] = useState(0);
   const [isDeviationDismissed, setIsDeviationDismissed] = useState(false);
+  const [isEditingRoute, setIsEditingRoute] = useState(false);
+  const [isRouteManagerOpen, setIsRouteManagerOpen] = useState(false);
 
   // Initialize DB and seed default 39 Tepic SEMOVI routes
   useEffect(() => {
-    initializeDatabase().then(() => {
+    initializeDatabase().then(async () => {
+      // Limpiar ramales o rutas creadas por error durante las pruebas
+      await db.routes.filter(r => !!r.isCustom).delete();
+      // Eliminar ruta no circular
+      const yerba = await db.routes.filter(r => r.name === 'La Yerba').first();
+      if (yerba) await db.routes.delete(yerba.id);
       setIsDbReady(true);
     });
   }, []);
@@ -35,6 +50,9 @@ export function App() {
     selectedRoute,
     selectedRouteId,
     setSelectedRouteId,
+    visibleRouteIds,
+    setVisibleRouteIds,
+    deleteRoutes,
     direction,
     setDirection,
     stops,
@@ -56,6 +74,16 @@ export function App() {
     return direction === 'ida' ? selectedRoute.ida : selectedRoute.vuelta;
   }, [selectedRoute, direction]);
 
+  const handleRouteTraceEdited = useCallback(async (newCoords: [number, number][]) => {
+    if (!selectedRoute) return;
+    const updated = {
+      ...selectedRoute,
+      ida: newCoords,
+      vuelta: [...newCoords].reverse()
+    };
+    await db.routes.put(updated);
+  }, [selectedRoute]);
+
   // Geolocation & Continuous Track Recording
   const {
     position,
@@ -65,6 +93,7 @@ export function App() {
     totalRecordedDistanceMeters,
     startRecording,
     stopRecording,
+    loadTrack,
     clearRecording,
     clearDeviation,
     deviationStatus,
@@ -83,6 +112,7 @@ export function App() {
     };
     const created = await addStop(coords, type, undefined, position.accuracy);
     if (created) {
+      setHistory(prev => [...prev, { type: 'add_stop', stopId: created.id }]);
       setLastMarkedStop(created);
       setCenterTrigger(prev => prev + 1); // trigger waze zoom
     }
@@ -94,26 +124,70 @@ export function App() {
     setCenterTrigger(prev => prev + 1); // trigger waze zoom
   }, [startRecording]);
 
-  // Undo last marked stop
+  const handleDeleteStop = useCallback(async (stopId: string) => {
+    const stop = stops.find(s => s.id === stopId);
+    if (stop) {
+      setHistory(prev => [...prev, { type: 'delete_stop', stop }]);
+    }
+    await deleteStop(stopId);
+    if (lastMarkedStop?.id === stopId) setLastMarkedStop(null);
+  }, [stops, deleteStop, lastMarkedStop]);
+
+  // Global Undo Handler
+  const handleUndoGlobal = useCallback(async () => {
+    if (history.length === 0) return;
+    const lastAction = history[history.length - 1];
+    
+    if (lastAction.type === 'add_stop') {
+      await deleteStop(lastAction.stopId);
+      if (lastMarkedStop?.id === lastAction.stopId) setLastMarkedStop(null);
+    } else if (lastAction.type === 'move_stop') {
+      await updateStop(lastAction.stopId, { coordinates: lastAction.oldCoords });
+    } else if (lastAction.type === 'delete_stop') {
+      await db.stops.add(lastAction.stop); // restore it exactly as it was
+    }
+    
+    setHistory(prev => prev.slice(0, -1));
+  }, [history, deleteStop, updateStop, lastMarkedStop]);
+
+  // Legacy Undo last marked stop (for the visual banner button)
   const handleUndoLastStop = useCallback(async () => {
     if (!lastMarkedStop) return;
-    await deleteStop(lastMarkedStop.id);
-    setLastMarkedStop(null);
-  }, [lastMarkedStop, deleteStop]);
+    await handleDeleteStop(lastMarkedStop.id);
+  }, [lastMarkedStop, handleDeleteStop]);
+
+  // Keyboard shortcuts (Cmd+Z)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        const target = e.target as HTMLElement;
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return; // Let browser handle text undo
+        e.preventDefault();
+        handleUndoGlobal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndoGlobal]);
 
   // Desktop Map Click to place stop
   const handleMapClick = useCallback(async (coords: Coordinates) => {
     if (!isDesktopMode) return;
     const created = await addStop(coords, 'costumbre', undefined, 1.0);
     if (created) {
+      setHistory(prev => [...prev, { type: 'add_stop', stopId: created.id }]);
       setLastMarkedStop(created);
     }
   }, [isDesktopMode, addStop]);
 
   // Stop Dragged on Sidewalk
   const handleStopDragEnd = useCallback(async (stopId: string, newCoords: Coordinates) => {
+    const stop = stops.find(s => s.id === stopId);
+    if (stop) {
+      setHistory(prev => [...prev, { type: 'move_stop', stopId, oldCoords: stop.coordinates }]);
+    }
     await updateStop(stopId, { coordinates: newCoords });
-  }, [updateStop]);
+  }, [stops, updateStop]);
 
   // Aceptar trazo 2026
   const handleAcceptTrace = useCallback(async () => {
@@ -177,7 +251,14 @@ export function App() {
         routes={routes}
         selectedRoute={selectedRoute}
         selectedRouteId={selectedRouteId}
-        onSelectRouteId={setSelectedRouteId}
+        onSelectRouteId={(id) => {
+          setSelectedRouteId(id);
+          if (!visibleRouteIds.includes(id)) {
+            setVisibleRouteIds([...visibleRouteIds, id]);
+          }
+        }}
+        visibleRouteIds={visibleRouteIds}
+        onOpenRouteManager={() => setIsRouteManagerOpen(true)}
         direction={direction}
         onChangeDirection={setDirection}
         gpsAccuracy={position.accuracy}
@@ -194,13 +275,25 @@ export function App() {
       />
 
       {/* Main Workspace (Map + Drawer) */}
-      <div className="flex-1 min-h-0 relative flex overflow-hidden">
+      <div className="flex-1 min-h-0 relative flex flex-col md:flex-row overflow-hidden">
+              {isRouteManagerOpen && (
+        <RouteManagerModal
+          isOpen={isRouteManagerOpen}
+          onClose={() => setIsRouteManagerOpen(false)}
+          routes={routes}
+          visibleRouteIds={visibleRouteIds}
+          setVisibleRouteIds={setVisibleRouteIds}
+          onDeleteRoutes={deleteRoutes}
+        />
+      )}
         
         {/* Interactive Map */}
-        <div className="flex-1 min-h-0 h-full relative">
+        <div className="flex-1 min-h-0 relative">
           <MapViewer
             currentPosition={position}
             selectedRoute={selectedRoute}
+            visibleRouteIds={visibleRouteIds}
+            routes={routes}
             direction={direction}
             stops={stops}
             recordedPoints={recordedPoints}
@@ -209,6 +302,8 @@ export function App() {
             onStopDragEnd={handleStopDragEnd}
             onMapClick={handleMapClick}
             centerTrigger={centerTrigger}
+            isEditingRoute={isEditingRoute}
+            onRouteTraceEdited={handleRouteTraceEdited}
           />
 
           {/* Deviation Alert Banner (SEMOVI vs Realidad) */}
@@ -250,14 +345,20 @@ export function App() {
             direction={direction}
             stops={stops}
             onUpdateStop={updateStop}
-            onDeleteStop={deleteStop}
+            onDeleteStop={handleDeleteStop}
             onReorderStop={reorderStop}
             recordedPointsLength={recordedPoints.length}
             onAcceptTrace={handleAcceptTrace}
             onOpenVariantModal={() => setRouteModalMode('variant')}
+            onLoadTrack={loadTrack}
+            isEditingRoute={isEditingRoute}
+            onToggleEditingRoute={() => setIsEditingRoute(!isEditingRoute)}
           />
         )}
       </div>
+
+      
+
 
       {/* Official Export Modal */}
       <ExportModal

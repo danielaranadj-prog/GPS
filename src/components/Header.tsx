@@ -18,6 +18,8 @@ interface HeaderProps {
   selectedRoute: RouteItem | null;
   selectedRouteId: string;
   onSelectRouteId: (id: string) => void;
+  visibleRouteIds: string[];
+  onOpenRouteManager: () => void;
   direction: DirectionType;
   onChangeDirection: (dir: DirectionType) => void;
   gpsAccuracy: number;
@@ -38,6 +40,8 @@ export const Header: React.FC<HeaderProps> = ({
   selectedRoute,
   selectedRouteId,
   onSelectRouteId,
+  visibleRouteIds,
+  onOpenRouteManager,
   direction,
   onChangeDirection,
   gpsAccuracy,
@@ -130,7 +134,7 @@ export const Header: React.FC<HeaderProps> = ({
                   .sort((a, b) => a.name.localeCompare(b.name, 'es'))
                   .map(r => (
                     <option key={r.id} value={r.id}>
-                      {r.name}
+                      {r.name} {r.status === 'coming_soon' ? '(Próximamente)' : ''}
                     </option>
                   ))}
               </optgroup>
@@ -141,7 +145,7 @@ export const Header: React.FC<HeaderProps> = ({
                     .sort((a, b) => a.name.localeCompare(b.name, 'es'))
                     .map(r => (
                       <option key={r.id} value={r.id}>
-                        {r.name}
+                        {r.name} {r.status === 'coming_soon' ? '(Próximamente)' : ''}
                       </option>
                     ))}
                 </optgroup>
@@ -151,30 +155,12 @@ export const Header: React.FC<HeaderProps> = ({
               </option>
             </select>
           </div>
-
-          {/* Direction 1-tap Pills */}
-          <div className="flex bg-slate-800 p-0.5 rounded-xl border border-slate-700/80 shadow-inner">
-            <button
-              onClick={() => onChangeDirection('ida')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                direction === 'ida'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              [ Ida ]
-            </button>
-            <button
-              onClick={() => onChangeDirection('vuelta')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                direction === 'vuelta'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              [ Vuelta ]
-            </button>
-          </div>
+          <button
+            onClick={onOpenRouteManager}
+            className="ml-2 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md"
+          >
+            Capas ({visibleRouteIds.length}/{routes.length})
+          </button>
         </div>
 
         {/* Right controls: Simulator + Mode Switcher + Export */}
@@ -196,7 +182,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Desktop / Mobile mode switch */}
           <button
             onClick={onToggleDesktopMode}
-            title={isDesktopMode ? "Cambiar a vista de Trabajo de Campo" : "Cambiar a Editor de Escritorio"}
+            title={isDesktopMode ? "Cambiar a vista de Trabajo de Campo" : "Editor de Paradas y Trazos"}
             className={`p-1.5 md:px-2.5 md:py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all ${
               isDesktopMode
                 ? 'bg-blue-600 text-white border-blue-500 shadow-md'
@@ -204,7 +190,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             {isDesktopMode ? <Laptop className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
-            <span className="hidden lg:inline">{isDesktopMode ? 'Editor QA' : 'Campo'}</span>
+            <span className="hidden md:inline">{isDesktopMode ? 'Cerrar Editor' : 'Editor de Rutas'}</span>
           </button>
 
           {/* Export JSON Button */}

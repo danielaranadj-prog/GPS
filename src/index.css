@@ -60,3 +60,9 @@ html, body, #root {
 .pt-safe {
   padding-top: env(safe-area-inset-top, 16px);
 }
+
+/* Counter-rotate popups and tooltips against map rotation */
+.leaflet-popup, .leaflet-tooltip {
+  transform: rotate(var(--map-heading, 0deg)) !important;
+  transition: transform 0.3s ease-out;
+}

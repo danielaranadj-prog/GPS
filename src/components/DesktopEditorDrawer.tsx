@@ -11,9 +11,12 @@ import {
   GitFork,
   MapPin,
   Sparkles,
-  Info
+  Info,
+  UploadCloud
 } from 'lucide-react';
-import type { Stop, RouteItem, DirectionType, StopType } from '../types';
+import type { Stop, RouteItem, DirectionType, StopType, GpsBreadcrumb } from '../types';
+import { db } from '../db';
+import * as turf from '@turf/turf';
 
 interface DesktopEditorDrawerProps {
   isOpen: boolean;
@@ -27,6 +30,9 @@ interface DesktopEditorDrawerProps {
   recordedPointsLength: number;
   onAcceptTrace: () => void;
   onOpenVariantModal: () => void;
+  onLoadTrack?: (points: GpsBreadcrumb[]) => void;
+  isEditingRoute?: boolean;
+  onToggleEditingRoute?: () => void;
 }
 
 export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
@@ -41,6 +47,9 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
   recordedPointsLength,
   onAcceptTrace,
   onOpenVariantModal,
+  onLoadTrack,
+  isEditingRoute,
+  onToggleEditingRoute,
 }) => {
   const [editingStopId, setEditingStopId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -66,8 +75,217 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
     setEditingStopId(null);
   };
 
+  const handleImportTrack = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !onLoadTrack) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        let points: GpsBreadcrumb[] = [];
+        
+        // Is it a GeoJSON?
+        if (parsed.type === 'FeatureCollection' || parsed.type === 'Feature') {
+          let coords = [];
+          if (parsed.type === 'FeatureCollection' && parsed.features.length > 0) {
+             const geom = parsed.features[0].geometry;
+             if (geom) coords = geom.type === 'MultiLineString' ? geom.coordinates[0] : geom.coordinates;
+          } else if (parsed.geometry) {
+             coords = parsed.geometry.type === 'MultiLineString' ? parsed.geometry.coordinates[0] : parsed.geometry.coordinates;
+          }
+          
+          if (coords && coords.length > 0) {
+            points = coords.map((c: any, i: number) => ({
+              lat: c[1],
+              lng: c[0],
+              accuracy: 5,
+              timestamp: Date.now() + i * 1000,
+            }));
+          }
+        } else if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].lat) {
+          // Direct array
+          points = parsed;
+        } else if (parsed.points) {
+          points = parsed.points;
+        }
+
+        if (points.length > 0) {
+          onLoadTrack(points);
+        } else {
+          alert('No se pudo encontrar un trazo válido en este archivo.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error al leer el archivo. Asegúrate que sea un JSON válido.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // reset input
+  };
+
+  const handleImportStops = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        let stopsToImport: Stop[] = [];
+
+        if (parsed.stops && Array.isArray(parsed.stops)) {
+          // Formato nativo
+          stopsToImport = parsed.stops;
+        } else if (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features)) {
+          // Formato GeoJSON
+          let seq = stops.length + 1;
+          stopsToImport = parsed.features
+            .filter((f: any) => f.geometry?.type === 'Point')
+            .map((f: any) => ({
+              id: `stop-imported-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+              name: f.properties?.name || f.properties?.title || `Parada importada ${seq}`,
+              coordinates: { lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0] },
+              type: 'oficial',
+              routeIds: [],
+              direction: direction,
+              sequence: seq++,
+              createdAt: new Date().toISOString()
+            }));
+        }
+
+        if (stopsToImport.length > 0) {
+          let baseLine: any = null;
+          if (selectedRoute) {
+            const baseCoords = direction === 'ida' ? selectedRoute.ida : selectedRoute.vuelta;
+            if (baseCoords && baseCoords.length >= 2) {
+              baseLine = turf.lineString(baseCoords.map(p => [p[1], p[0]]));
+            }
+          }
+
+          const patchedStops = stopsToImport.map(s => {
+            let addRoute = false;
+            
+            if (baseLine) {
+              const stopPoint = turf.point([s.coordinates.lng, s.coordinates.lat]);
+              const dist = turf.pointToLineDistance(stopPoint, baseLine, { units: 'meters' });
+              // Solo vincular a la ruta actual si realmente pasa a menos de 1m de ella
+              if (dist <= 1) {
+                addRoute = true;
+              }
+            } else if (!selectedRoute) {
+              addRoute = true;
+            }
+
+            const newRouteIds = new Set(s.routeIds || []);
+            if (addRoute && selectedRoute) {
+              newRouteIds.add(selectedRoute.id);
+            }
+
+            return {
+              ...s,
+              routeIds: Array.from(newRouteIds),
+              direction: s.direction || direction
+            };
+          });
+
+          await db.stops.bulkPut(patchedStops);
+          const shownStops = patchedStops.filter(s => selectedRoute && s.routeIds.includes(selectedRoute.id)).length;
+          alert(`¡Importadas con éxito ${patchedStops.length} paradas en total!\nSe mostraron y vincularon ${shownStops} a esta ruta por estar a 1m o menos de su trazo.`);
+        } else {
+          alert('Formato no reconocido. Usa el stops.json oficial de la app o un GeoJSON de Puntos (Point).');
+        }
+      } catch (err) {
+        alert('Error al leer el archivo JSON.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // reset input
+  };
+
+  const handleAutoLinkRoutes = async () => {
+    if (!selectedRoute) return;
+    
+    const confirmLink = window.confirm(
+      '¿Deseas buscar automáticamente todas las rutas que pasen por esta misma calle (mismo sentido y < 1m de distancia)?'
+    );
+    if (!confirmLink) return;
+
+    try {
+      const allRoutes = await db.routes.toArray();
+      let updatedCount = 0;
+      const RADIUS_METERS = 1;
+
+      // Calculate the base line for the current route
+      const baseCoords = direction === 'ida' ? selectedRoute.ida : selectedRoute.vuelta;
+      if (!baseCoords || baseCoords.length < 2) {
+        alert('La ruta actual no tiene un trazo válido para comparar.');
+        return;
+      }
+      const baseLine = turf.lineString(baseCoords.map(p => [p[1], p[0]]));
+
+      for (const stop of stops) { 
+        const stopPoint = turf.point([stop.coordinates.lng, stop.coordinates.lat]);
+        const newRouteIds = new Set(stop.routeIds || []);
+        let modified = false;
+
+        // Find the bearing of the current street for this stop
+        const baseNearest = turf.nearestPointOnLine(baseLine, stopPoint);
+        const baseIndex = baseNearest.properties?.index ?? 0;
+        const p1 = baseLine.geometry.coordinates[baseIndex];
+        const p2 = baseLine.geometry.coordinates[Math.min(baseIndex + 1, baseLine.geometry.coordinates.length - 1)];
+        const baseBearing = turf.bearing(turf.point(p1), turf.point(p2));
+
+        for (const route of allRoutes) {
+          if (newRouteIds.has(route.id)) continue;
+
+          const pathCoords = stop.direction === 'ida' ? route.ida : route.vuelta;
+          if (!pathCoords || pathCoords.length < 2) continue;
+
+          const line = turf.lineString(pathCoords.map(p => [p[1], p[0]]));
+          const distance = turf.pointToLineDistance(stopPoint, line, { units: 'meters' });
+
+          if (distance <= RADIUS_METERS) {
+            // It's close. But is it on the same street/direction, or just crossing perpendicularly?
+            const targetNearest = turf.nearestPointOnLine(line, stopPoint);
+            const targetIndex = targetNearest.properties?.index ?? 0;
+            const tp1 = line.geometry.coordinates[targetIndex];
+            const tp2 = line.geometry.coordinates[Math.min(targetIndex + 1, line.geometry.coordinates.length - 1)];
+            const targetBearing = turf.bearing(turf.point(tp1), turf.point(tp2));
+
+            // Difference in angle
+            let diff = Math.abs(baseBearing - targetBearing);
+            if (diff > 180) diff = 360 - diff;
+
+            // If the angle difference is <= 60 degrees, it's flowing along the same avenue/street.
+            // If it's ~90 degrees, it's a perpendicular cross street (ignore).
+            // If it's ~180 degrees, it's the opposite direction on the same street (ignore).
+            if (diff <= 60) {
+              newRouteIds.add(route.id);
+              modified = true;
+            }
+          }
+        }
+
+        if (modified) {
+          await db.stops.update(stop.id, { routeIds: Array.from(newRouteIds) });
+          updatedCount++;
+        }
+      }
+
+      if (updatedCount > 0) {
+        alert(`¡Listo! Se actualizaron ${updatedCount} paradas. Solo se vincularon rutas que fluyen en la misma dirección de la calle.`);
+      } else {
+        alert('No se encontraron rutas nuevas en esta misma dirección.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Hubo un error al procesar las rutas espaciales.');
+    }
+  };
+
   return (
-    <aside className="w-full md:w-96 bg-slate-900/98 backdrop-blur-xl border-l border-slate-800 flex flex-col h-full z-40 shadow-2xl text-slate-100 overflow-hidden">
+    <aside className="w-full h-[45%] md:h-full md:w-96 bg-slate-900/98 backdrop-blur-xl border-t md:border-t-0 md:border-l border-slate-800 flex flex-col z-40 shadow-2xl text-slate-100 overflow-hidden">
       
       {/* Header */}
       <div className="p-4 border-b border-slate-800 flex items-center justify-between">
@@ -102,7 +320,19 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
             : 'Graba o simula un recorrido para comparar el trazo de calle contra SEMOVI.'}
         </p>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2 mb-2">
+          <button
+            onClick={onToggleEditingRoute}
+            className={`px-2.5 py-2 rounded-xl border font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all ${
+              isEditingRoute
+                ? 'bg-amber-600/20 hover:bg-amber-600/30 border-amber-500/50 text-amber-300'
+                : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'
+            }`}
+          >
+            <GitMerge className="w-4 h-4" />
+            <span className="text-center">{isEditingRoute ? 'Fin Edición' : 'Editar Nodos'}</span>
+          </button>
+          
           <button
             onClick={onAcceptTrace}
             disabled={recordedPointsLength < 2}
@@ -120,13 +350,59 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
             <span className="text-center">Guardar como Ramal</span>
           </button>
         </div>
+
+        <div className="grid grid-cols-2 gap-2 mb-2 mt-3 pt-3 border-t border-slate-800">
+          <button
+            onClick={async () => {
+              if (selectedRoute && window.confirm('¿Seguro que deseas marcar esta ruta como Próximamente?')) {
+                await db.routes.update(selectedRoute.id, { status: 'coming_soon' });
+                alert('Ruta marcada como Próximamente.');
+              }
+            }}
+            className="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+          >
+            <span className="text-[14px]">⏱️</span>
+            <span>Próximamente</span>
+          </button>
+          <button
+            onClick={async () => {
+              if (selectedRoute && window.confirm('¿Seguro que deseas eliminar esta ruta completamente de la base de datos?')) {
+                await db.routes.delete(selectedRoute.id);
+                alert('Ruta eliminada.');
+              }
+            }}
+            className="px-2.5 py-2 rounded-xl bg-red-900/20 hover:bg-red-900/40 border border-red-500/30 text-red-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+          >
+            <span className="text-[14px]">🗑️</span>
+            <span>Eliminar Ruta</span>
+          </button>
+        </div>
+
+        {onLoadTrack && (
+          <label className="cursor-pointer px-2.5 py-2 w-full rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center gap-2 transition-all">
+            <UploadCloud className="w-4 h-4 text-slate-400" />
+            <span>Importar Trazo GPS (.json)</span>
+            <input type="file" accept=".json,.geojson" onChange={handleImportTrack} className="hidden" />
+          </label>
+        )}
       </div>
 
       {/* Stops Sequential List */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         <div className="flex items-center justify-between text-xs font-semibold text-slate-400 px-1">
           <span>Paradas Registradas ({stops.length})</span>
-          <span className="text-[10px] text-blue-400">Pines arrastrables en mapa</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-blue-400">Arrastrables</span>
+            <button onClick={handleAutoLinkRoutes} className="cursor-pointer hover:text-white hover:bg-slate-700 flex items-center bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 transition-colors" title="Vincular automáticamente rutas cercanas a estas paradas">
+              <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-400" />
+              Auto-Vincular
+            </button>
+            <label className="cursor-pointer hover:text-white flex items-center bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 transition-colors">
+              <UploadCloud className="w-3.5 h-3.5 mr-1" />
+              Importar
+              <input type="file" accept=".json" onChange={handleImportStops} className="hidden" />
+            </label>
+          </div>
         </div>
 
         {stops.length === 0 ? (

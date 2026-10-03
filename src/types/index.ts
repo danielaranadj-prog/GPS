@@ -30,6 +30,7 @@ export interface RouteItem {
   ida: [number, number][]; // [lat, lng][]
   vuelta: [number, number][]; // [lat, lng][]
   isCustom?: boolean;
+  status?: 'active' | 'coming_soon';
   baseStopId?: string;
   notes?: string;
 }

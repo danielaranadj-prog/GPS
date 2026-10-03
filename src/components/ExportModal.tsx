@@ -79,6 +79,41 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  
+  const handleDownloadGeoJSON = () => {
+    let geojson;
+    if (activeTab === 'stops') {
+      geojson = {
+        type: "FeatureCollection",
+        features: allStops.map(s => ({
+          type: "Feature",
+          properties: { id: s.id, name: s.name, type: s.type, routeIds: s.routeIds },
+          geometry: { type: "Point", coordinates: [s.coordinates.lng, s.coordinates.lat] }
+        }))
+      };
+    } else {
+      geojson = {
+        type: "FeatureCollection",
+        features: allRoutes.filter(r => r.ida && r.ida.length > 0).map(r => ({
+          type: "Feature",
+          properties: { id: r.id, name: r.name, code: r.code, status: r.status || 'active' },
+          geometry: { type: "LineString", coordinates: r.ida.map(p => [p[1], p[0]]) }
+        }))
+      };
+    }
+
+    const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = activeTab === 'stops' ? 'tepic_stops.geojson' : 'tepic_routes.geojson';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+
   const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -183,13 +218,22 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
               <span>{copied ? '¡Copiado!' : 'Copiar JSON'}</span>
             </button>
+            
+            <button
+              onClick={handleDownloadGeoJSON}
+              className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-purple-700/30 transition-all active:scale-95"
+            >
+              <FileDown className="w-4 h-4" />
+              <span>GeoJSON</span>
+            </button>
             <button
               onClick={handleDownload}
               className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-700/30 transition-all active:scale-95"
             >
               <Download className="w-4 h-4" />
-              <span>Descargar {activeTab === 'stops' ? 'stops.json' : 'routes.json'}</span>
+              <span>JSON App</span>
             </button>
+
           </div>
         </div>
 
