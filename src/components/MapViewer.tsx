@@ -337,91 +337,91 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviationPoints, mapReadyTick]);
 
-  // Render Stops Markers
+  // Render Stops Markers (zoom-aware density)
   useEffect(() => {
     const map = mapInstanceRef.current;
     const stopsGroup = stopsLayerGroupRef.current;
     if (!map || !stopsGroup || !mapReadyRef.current) return;
 
-    stopsGroup.clearLayers();
+    const buildMarkers = () => {
+      stopsGroup.clearLayers();
+      const zoom = map.getZoom();
 
-    stops.forEach((stop) => {
-      // Color badge based on stop type
-      let badgeColor = '#10b981'; // oficial (green)
-      let typeLabel = 'Oficial';
-      if (stop.type === 'costumbre') {
-        badgeColor = '#f59e0b'; // costumbre (yellow)
-        typeLabel = 'Costumbre';
-      } else if (stop.type === 'base') {
-        badgeColor = '#8b5cf6'; // base (purple)
-        typeLabel = 'Base';
-      }
+      stops.forEach((stop) => {
+        let badgeColor = '#10b981'; // oficial green
+        let typeLabel = 'Oficial';
+        if (stop.type === 'costumbre') { badgeColor = '#f59e0b'; typeLabel = 'Costumbre'; }
+        else if (stop.type === 'base')  { badgeColor = '#8b5cf6'; typeLabel = 'Base'; }
 
+        let statusBadge = '';
+        const isOrphan = !stop.routeIds || stop.routeIds.length === 0;
+        const isLowAccuracy = stop.accuracy && stop.accuracy > 15;
+        if (isOrphan)       { badgeColor = '#f97316'; statusBadge = '<span style="font-size:8px;padding:1px 4px;border-radius:3px;background:#f9731620;color:#fb923c;border:1px solid #f9731640">Huérfana</span>'; }
+        else if (isLowAccuracy) { badgeColor = '#f43f5e'; statusBadge = '<span style="font-size:8px;padding:1px 4px;border-radius:3px;background:#f43f5e20;color:#fb7185;border:1px solid #f43f5e40">Mala Señal</span>'; }
 
-      let statusBadge = '';
-      const isOrphan = !stop.routeIds || stop.routeIds.length === 0;
-      const isLowAccuracy = stop.accuracy && stop.accuracy > 15;
+        let iconHtml = '';
+        let iconSize: [number, number] = [8, 8];
+        let iconAnchor: [number, number] = [4, 4];
+        let popupAnchor: [number, number] = [0, -6];
 
-      if (isOrphan) {
-        badgeColor = '#f97316'; // orange-500
-        statusBadge = '<span class="px-1 py-0.5 bg-orange-500/20 text-orange-400 rounded uppercase text-[8px] font-black tracking-widest border border-orange-500/30">Huérfana</span>';
-      } else if (isLowAccuracy) {
-        badgeColor = '#f43f5e'; // rose-500
-        statusBadge = '<span class="px-1 py-0.5 bg-rose-500/20 text-rose-400 rounded uppercase text-[8px] font-black tracking-widest border border-rose-500/30">Mala Señal</span>';
-      }
+        if (zoom <= 13) {
+          // Minimal dot — just a 6px colored circle, no text
+          iconHtml = `<div style="width:6px;height:6px;border-radius:50%;background:${badgeColor};border:1px solid rgba(255,255,255,0.7);box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>`;
+          iconSize = [6, 6]; iconAnchor = [3, 3]; popupAnchor = [0, -4];
+        } else if (zoom <= 16) {
+          // Compact — 14px circle with sequence number in tiny font
+          iconHtml = `<div style="width:14px;height:14px;border-radius:50%;background:${badgeColor};border:1.5px solid white;display:flex;align-items:center;justify-content:center;font-family:monospace;font-weight:700;font-size:7px;color:white;box-shadow:0 1px 4px rgba(0,0,0,0.35);">${stop.type === 'base' ? '◉' : stop.sequence}</div>`;
+          iconSize = [14, 14]; iconAnchor = [7, 7]; popupAnchor = [0, -8];
+        } else {
+          // Full — 20px circle, sequence, no neon glow, clean border
+          iconHtml = `<div style="width:20px;height:20px;border-radius:50%;background:${badgeColor};border:2px solid white;display:flex;align-items:center;justify-content:center;font-family:monospace;font-weight:800;font-size:8px;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">${stop.sequence}</div>`;
+          iconSize = [20, 20]; iconAnchor = [10, 10]; popupAnchor = [0, -12];
+        }
 
-      const iconHtml = `
-
-        <div class="relative flex items-center justify-center cursor-pointer group" style="transform: rotate(var(--map-heading, 0deg)); transition: transform 0.3s ease-out; transform-origin: center bottom;">
-          <div class="w-8 h-8 rounded-full border-2 border-white shadow-xl flex items-center justify-center font-bold text-xs text-white transition-transform transform active:scale-90"
-               style="background-color: ${badgeColor}; box-shadow: 0 0 12px ${badgeColor}80;">
-            ${stop.sequence}
-          </div>
-          <div class="absolute -bottom-1 w-2 h-2 rounded-full bg-white shadow"></div>
-        </div>
-      `;
-
-      const customIcon = L.divIcon({
-        className: 'custom-stop-icon',
-        html: iconHtml,
-        iconSize: [32, 36],
-        iconAnchor: [16, 34],
-        popupAnchor: [0, -32],
-      });
-
-      const marker = L.marker([stop.coordinates.lat, stop.coordinates.lng], {
-        icon: customIcon,
-        draggable: true,
-        title: `#${stop.sequence} ${stop.name}`,
-      });
-
-      // Drag event for sidewalk tuning
-      if (onStopDragEnd) {
-        marker.on('dragend', (e) => {
-          const latlng = (e.target as L.Marker).getLatLng();
-          onStopDragEnd(stop.id, { lat: latlng.lat, lng: latlng.lng });
+        const customIcon = L.divIcon({
+          className: 'custom-stop-icon',
+          html: iconHtml,
+          iconSize,
+          iconAnchor,
+          popupAnchor,
         });
-      }
 
-      // Popup
-      const popupContent = `
-        <div class="p-2 min-w-[200px] text-slate-900 font-sans">
-          <div class="flex items-center gap-2 mb-1">
-            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white" style="background-color: ${badgeColor}">
-              #${stop.sequence} ${typeLabel}
-            </span>
-            ${stop.accuracy ? `<span class="text-[10px] text-slate-500 font-medium">±${stop.accuracy}m</span>` : ''}
-            ${statusBadge}
+        const marker = L.marker([stop.coordinates.lat, stop.coordinates.lng], {
+          icon: customIcon,
+          draggable: zoom >= 15, // only draggable when zoomed in enough
+          title: `#${stop.sequence} ${stop.name}`,
+        });
+
+        if (onStopDragEnd && zoom >= 15) {
+          marker.on('dragend', (e) => {
+            const latlng = (e.target as L.Marker).getLatLng();
+            onStopDragEnd(stop.id, { lat: latlng.lat, lng: latlng.lng });
+          });
+        }
+
+        const popupContent = `
+          <div style="padding:8px;min-width:180px;font-family:sans-serif;font-size:12px;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;">
+              <span style="padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:white;background:${badgeColor}">#${stop.sequence} ${typeLabel}</span>
+              ${stop.accuracy ? `<span style="font-size:9px;color:#64748b">±${stop.accuracy}m</span>` : ''}
+              ${statusBadge}
+            </div>
+            <p style="font-weight:700;font-size:13px;color:#1e293b;margin:0 0 4px 0;line-height:1.3">${stop.name}</p>
+            <p style="font-size:10px;color:#94a3b8;margin:0">${stop.coordinates.lat.toFixed(5)}, ${stop.coordinates.lng.toFixed(5)}</p>
+            ${isDesktopMode && zoom >= 15 ? '<p style="font-size:9px;color:#2563eb;margin:4px 0 0 0">💡 Arrastra para ajustar</p>' : ''}
           </div>
-          <p class="font-bold text-sm text-slate-800 leading-tight">${stop.name}</p>
-          <p class="text-[11px] text-slate-500 mt-1">Lat: ${stop.coordinates.lat.toFixed(5)}, Lng: ${stop.coordinates.lng.toFixed(5)}</p>
-          ${isDesktopMode ? `<p class="text-[10px] text-blue-600 font-semibold mt-1.5">💡 Arrastra el pin para ajustar sobre la banqueta</p>` : ''}
-        </div>
-      `;
+        `;
 
-      marker.bindPopup(popupContent, { className: 'custom-transit-popup' });
-      stopsGroup.addLayer(marker);
-    });
+        marker.bindPopup(popupContent, { className: 'custom-transit-popup', maxWidth: 220 });
+        stopsGroup.addLayer(marker);
+      });
+    };
+
+    buildMarkers();
+
+    // Re-build on zoom change so density updates live
+    map.on('zoomend', buildMarkers);
+    return () => { map.off('zoomend', buildMarkers); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stops, isDesktopMode, onStopDragEnd, mapReadyTick]);
 

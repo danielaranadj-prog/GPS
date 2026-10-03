@@ -44,7 +44,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         lng: Number(s.coordinates.lng.toFixed(6)),
       },
       type: s.type,
-      routeIds: s.routeIds,
+      routeIds: s.routeIds || [],
       direction: s.direction,
       sequence: s.sequence,
       ...(s.accuracy ? { accuracy: s.accuracy } : {}),

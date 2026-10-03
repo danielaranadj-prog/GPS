@@ -21,6 +21,12 @@ export class TransitStudioDatabase extends Dexie {
       routes: 'id, code, category, isCustom',
       tracks: 'id, routeId, direction, startedAt',
     });
+    // Version 3: force re-seed after catalog cleanup (15 routes)
+    this.version(3).stores({
+      stops: 'id, type, direction, sequence, *routeIds, createdAt',
+      routes: 'id, code, category, isCustom',
+      tracks: 'id, routeId, direction, startedAt',
+    }); // version 3: non-destructive — initializeDatabase() bulkPut handles re-sync
   }
 }
 
@@ -28,59 +34,9 @@ export const db = new TransitStudioDatabase();
 
 // Initialize and seed default routes — always overwrite so names stay up-to-date
 export async function initializeDatabase() {
-  console.log('[DB] Syncing 39 official SEMOVI Tepic routes (bulkPut)...');
+  console.log('[DB] Syncing official SEMOVI Tepic routes (bulkPut)...');
   // bulkPut = insert OR update; keeps custom routes untouched since they have different ids
   await db.routes.bulkPut(defaultRoutes as RouteItem[]);
 
-  // Pre-seed sample stops if empty for immediate testing
-  const stopsCount = await db.stops.count();
-  if (stopsCount === 0) {
-    const sampleStops: Stop[] = [
-      {
-        id: "stop-suchiate-mexico-victoria",
-        name: "Av. México y Victoria",
-        coordinates: { lat: 21.5034, lng: -104.8912 },
-        type: "costumbre",
-        routeIds: ["r-o-suchiate"],
-        direction: "ida",
-        sequence: 1,
-        accuracy: 2.8,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: "stop-suchiate-catedral",
-        name: "Av. México y Amado Nervo (Catedral)",
-        coordinates: { lat: 21.5095, lng: -104.8957 },
-        type: "oficial",
-        routeIds: ["r-o-suchiate"],
-        direction: "ida",
-        sequence: 2,
-        accuracy: 3.1,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: "stop-suchiate-mololoa",
-        name: "Av. México y Puente Mololoa",
-        coordinates: { lat: 21.5200, lng: -104.8965 },
-        type: "oficial",
-        routeIds: ["r-o-suchiate"],
-        direction: "ida",
-        sequence: 3,
-        accuracy: 3.5,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: "stop-suchiate-base",
-        name: "Terminal Río Suchiate Base",
-        coordinates: { lat: 21.5285, lng: -104.8620 },
-        type: "base",
-        routeIds: ["r-o-suchiate"],
-        direction: "ida",
-        sequence: 4,
-        accuracy: 2.4,
-        createdAt: new Date().toISOString()
-      }
-    ];
-    await db.stops.bulkAdd(sampleStops);
-  }
+  // No sample stops — user creates real stops from GPS field work
 }

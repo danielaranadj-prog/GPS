@@ -12,7 +12,7 @@ export interface Stop {
   name: string; // e.g. "Av. México y Victoria"
   coordinates: Coordinates;
   type: StopType;
-  routeIds: string[]; // e.g. ["r-o-suchiate"]
+  routeIds?: string[]; // computed dynamically by geometry — do not rely on stored value
   direction: DirectionType;
   sequence: number;
   accuracy?: number; // in meters (e.g. 3.2)
@@ -75,7 +75,7 @@ export interface ExportStopsFile {
     name: string;
     coordinates: { lat: number; lng: number };
     type: StopType;
-    routeIds: string[];
+    routeIds: string[]; // empty array for global stops
     direction: DirectionType;
     sequence: number;
     accuracy?: number;
