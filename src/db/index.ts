@@ -22,7 +22,7 @@ export class TransitStudioDatabase extends Dexie {
       tracks: 'id, routeId, direction, startedAt',
     });
     // Version 4: force re-seed to load all 60 routes
-    this.version(4).stores({
+    this.version(5).stores({
       stops: 'id, type, direction, sequence, *routeIds, createdAt',
       routes: 'id, code, category, isCustom',
       tracks: 'id, routeId, direction, startedAt',
