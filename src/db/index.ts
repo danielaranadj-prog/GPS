@@ -35,8 +35,26 @@ export const db = new TransitStudioDatabase();
 // Initialize and seed default routes — always overwrite so names stay up-to-date
 export async function initializeDatabase() {
   console.log('[DB] Syncing official SEMOVI Tepic routes (bulkPut)...');
+  
+  // The new JSON has a { "routes": [...] } structure and uses { lat, lng } instead of [lat, lng]
+  const rawData: any = defaultRoutes;
+  const routeList = rawData.routes || rawData;
+
+  const mappedRoutes: RouteItem[] = routeList.map((r: any) => ({
+    id: r.id || `r-${Math.random()}`,
+    code: r.id || 'N/A',
+    name: r.name,
+    agency: 'SEMOVI Nayarit',
+    category: 'troncal',
+    color: r.color || '#2563eb',
+    ida: r.coordinates ? r.coordinates.map((c: any) => [c.lat, c.lng]) : (r.ida || []),
+    vuelta: r.coordinates ? r.coordinates.slice().reverse().map((c: any) => [c.lat, c.lng]) : (r.vuelta || []),
+    isCustom: false,
+    notes: r.groupName || ''
+  }));
+
   // bulkPut = insert OR update; keeps custom routes untouched since they have different ids
-  await db.routes.bulkPut(defaultRoutes as RouteItem[]);
+  await db.routes.bulkPut(mappedRoutes);
 
   // No sample stops — user creates real stops from GPS field work
 }
