@@ -544,7 +544,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           left: '-30%',
           width: '160%',
           height: '160%',
-          transform: `rotate(${-heading}deg) ${isRecording ? 'rotateX(45deg) scale(1.15)' : ''}`,
+          transform: `rotate(${-heading}deg)`,
           transformOrigin: 'center center',
         }}
       >
