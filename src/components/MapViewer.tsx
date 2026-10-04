@@ -58,7 +58,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   const visibleRoutesGroupRef = useRef<L.LayerGroup | null>(null);
 
   type BasemapType = 'google-streets' | 'google-hybrid' | 'osm' | 'dark' | 'carto-light';
-  const [basemap, setBasemap] = useState<BasemapType>('carto-light');
+  const [basemap, setBasemap] = useState<BasemapType>('google-streets');
   // useRef so effects always read current value synchronously (no stale closure)
   const mapReadyRef = useRef(false);
   // Incrementing this forces dependent effects to re-run after map is initialized

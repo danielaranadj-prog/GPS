@@ -148,26 +148,7 @@ export const Header: React.FC<HeaderProps> = ({
               </select>
             </div>
 
-            {selectedRoute && (
-              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
-                <button
-                  onClick={() => onChangeDirection('ida')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    direction === 'ida' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500'
-                  }`}
-                >
-                  Ida
-                </button>
-                <button
-                  onClick={() => onChangeDirection('vuelta')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    direction === 'vuelta' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500'
-                  }`}
-                >
-                  Vuelta
-                </button>
-              </div>
-            )}
+            
           </div>
         )}
       </div>

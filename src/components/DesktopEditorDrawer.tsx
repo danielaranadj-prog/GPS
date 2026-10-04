@@ -57,20 +57,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  const startEditing = (stop: Stop) => {
-    setEditingStopId(stop.id);
-    setEditName(stop.name);
-    setEditType(stop.type);
-  };
-
-  const saveEdit = async (stopId: string) => {
-    await onUpdateStop(stopId, {
-      name: editName.trim() || 'Parada sin nombre',
-      type: editType,
-    });
-    setEditingStopId(null);
-  };
-
+  
   const cancelEdit = () => {
     setEditingStopId(null);
   };
@@ -285,7 +272,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
   };
 
   return (
-    <aside className="w-full h-[45%] md:h-full md:w-96 bg-slate-900/98 backdrop-blur-xl border-t md:border-t-0 md:border-l border-slate-800 flex flex-col z-40 shadow-2xl text-slate-100 overflow-hidden">
+    <aside className="w-full h-[60%] md:h-full md:w-96 bg-slate-900/98 backdrop-blur-xl border-t md:border-t-0 md:border-l border-slate-800 flex flex-col z-40 shadow-2xl text-slate-100 overflow-hidden">
       
       {/* Header */}
       <div className="p-4 border-b border-slate-800 flex items-center justify-between">
@@ -307,7 +294,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
       </div>
 
       {/* Route Merging Panel */}
-      <div className="p-3.5 bg-slate-950/70 border-b border-slate-800">
+      <div className="hidden md:block p-3.5 bg-slate-950/70 border-b border-slate-800">
         <div className="flex items-center gap-1.5 mb-2">
           <GitMerge className="w-4 h-4 text-emerald-400" />
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
@@ -388,7 +375,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
       </div>
 
       {/* Stops Sequential List */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="flex-1 overflow-y-auto p-3 pb-safe space-y-2">
         <div className="flex items-center justify-between text-xs font-semibold text-slate-400 px-1">
           <span>Paradas Registradas ({stops.length})</span>
           <div className="hidden md:flex items-center gap-2">
@@ -413,51 +400,29 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
           </div>
         ) : (
           stops.map((stop, index) => {
-            const isEditing = editingStopId === stop.id;
             let badgeBg = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40';
             if (stop.type === 'costumbre') badgeBg = 'bg-amber-500/20 text-amber-400 border-amber-500/40';
             if (stop.type === 'base') badgeBg = 'bg-purple-500/20 text-purple-400 border-purple-500/40';
+
+            const cycleType = () => {
+              const types: StopType[] = ['oficial', 'costumbre', 'base'];
+              const nextType = types[(types.indexOf(stop.type) + 1) % types.length];
+              onUpdateStop(stop.id, { type: nextType });
+            };
+
+            const promptEditName = () => {
+              const newName = window.prompt('Editar nombre de la parada:', stop.name);
+              if (newName !== null && newName.trim() !== '') {
+                onUpdateStop(stop.id, { name: newName.trim() });
+              }
+            };
 
             return (
               <div
                 key={stop.id}
                 className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-2.5 shadow-sm hover:border-slate-600 transition-all"
               >
-                {isEditing ? (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      placeholder="Nombre del cruce..."
-                    />
-                    <div className="flex items-center gap-1.5">
-                      <select
-                        value={editType}
-                        onChange={(e) => setEditType(e.target.value as StopType)}
-                        className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1 text-xs text-white"
-                      >
-                        <option value="oficial">🟢 Oficial</option>
-                        <option value="costumbre">🟡 Costumbre</option>
-                        <option value="base">🟣 Base</option>
-                      </select>
-                      <button
-                        onClick={() => saveEdit(stop.id)}
-                        className="p-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 ml-auto"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={cancelEdit}
-                        className="p-1.5 rounded-lg bg-slate-700 text-slate-300 hover:text-white"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                     {/* Sequence Badge */}
                     <div className="w-7 h-7 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center font-bold text-xs text-blue-400 shrink-0">
                       {stop.sequence}
@@ -466,10 +431,10 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
                     {/* Details */}
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-xs text-white truncate">
-                        {stop.name}
+                        <span className="cursor-pointer hover:text-blue-300" onClick={promptEditName}>{stop.name}</span>
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.2 rounded border ${badgeBg}`}>
+                        <span onClick={cycleType} className={`cursor-pointer text-[9px] font-bold uppercase px-1.5 py-0.2 rounded border ${badgeBg}`}>
                           {stop.type}
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">
@@ -498,7 +463,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
 
                     {/* Edit and Delete */}
                     <button
-                      onClick={() => startEditing(stop)}
+                      onClick={promptEditName}
                       className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-blue-300"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
@@ -510,7 +475,6 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                )}
               </div>
             );
           })
@@ -518,7 +482,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
       </div>
 
       {/* Footer tip */}
-      <div className="p-3 border-t border-slate-800 bg-slate-950/40 text-[11px] text-slate-400 flex items-center gap-2">
+      <div className="p-3 pb-safe border-t border-slate-800 bg-slate-950/40 text-[11px] text-slate-400 flex items-center gap-2">
         <Info className="w-4 h-4 text-blue-400 shrink-0" />
         <span>En el mapa puedes arrastrar cualquier pin directamente a la banqueta deseada.</span>
       </div>

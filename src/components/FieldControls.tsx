@@ -48,6 +48,9 @@ export const FieldControls: React.FC<FieldControlsProps> = ({
     setIsMarking(true);
     try {
       await onMarkStop(selectedCategory);
+      if (navigator.vibrate) {
+        navigator.vibrate([150]); // Success haptic feedback
+      }
     } finally {
       setIsMarking(false);
     }
@@ -118,7 +121,11 @@ export const FieldControls: React.FC<FieldControlsProps> = ({
               Borrar última
             </button>
             <button
-              onClick={onStopRecording}
+              onClick={() => {
+                if (window.confirm('¿Seguro que deseas finalizar el mapeo?')) {
+                  onStopRecording();
+                }
+              }}
               className="flex-1 py-3 rounded-xl font-bold text-sm flex justify-center items-center gap-2 bg-rose-100 text-rose-700 hover:bg-rose-200 transition-colors"
             >
               <StopCircle className="w-4 h-4" />
