@@ -324,6 +324,8 @@ export function App() {
               recordedDistanceMeters={totalRecordedDistanceMeters}
               lastMarkedStop={lastMarkedStop}
               onUndoLastStop={handleUndoLastStop}
+              onAcceptTrace={handleAcceptTrace}
+              onClearTrace={clearRecording}
             />
           )}
         </div>

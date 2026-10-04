@@ -481,7 +481,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   // Re-center continuously if following
   useEffect(() => {
     if (isFollowing && mapInstanceRef.current && mapReadyRef.current) {
-      mapInstanceRef.current.panTo([currentPosition.lat, currentPosition.lng], { animate: true });
+      mapInstanceRef.current.setView([currentPosition.lat, currentPosition.lng], mapInstanceRef.current.getZoom(), { animate: false });
     }
   }, [currentPosition.lat, currentPosition.lng, isFollowing, mapReadyTick]);
 

@@ -27,6 +27,8 @@ interface FieldControlsProps {
   recordedDistanceMeters: number;
   lastMarkedStop: Stop | null;
   onUndoLastStop?: () => void;
+  onAcceptTrace?: () => void;
+  onClearTrace?: () => void;
 }
 
 export const FieldControls: React.FC<FieldControlsProps> = ({
@@ -40,6 +42,8 @@ export const FieldControls: React.FC<FieldControlsProps> = ({
   recordedDistanceMeters,
   lastMarkedStop,
   onUndoLastStop,
+  onAcceptTrace,
+  onClearTrace,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<StopType>('costumbre');
   const [isMarking, setIsMarking] = useState(false);
