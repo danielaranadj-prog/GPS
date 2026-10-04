@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import {
+  Play,
   MapPin,
+  Undo2,
+  StopCircle,
   Radio,
   Square,
   CheckCircle2,
@@ -14,6 +17,7 @@ import {
 import type { StopType, Coordinates, Stop } from '../types';
 
 interface FieldControlsProps {
+  mappingMode: 'zone' | 'route';
   currentPosition: Coordinates & { accuracy: number };
   onMarkStop: (type: StopType) => Promise<Stop | null>;
   isRecording: boolean;
@@ -26,6 +30,7 @@ interface FieldControlsProps {
 }
 
 export const FieldControls: React.FC<FieldControlsProps> = ({
+  mappingMode,
   currentPosition,
   onMarkStop,
   isRecording,
@@ -38,214 +43,90 @@ export const FieldControls: React.FC<FieldControlsProps> = ({
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<StopType>('costumbre');
   const [isMarking, setIsMarking] = useState(false);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
 
   const handleMark = async () => {
-    if (isMarking) return;
     setIsMarking(true);
     try {
       await onMarkStop(selectedCategory);
-      setShowFeedback(true);
-      setTimeout(() => setShowFeedback(false), 2000);
     } finally {
       setIsMarking(false);
     }
   };
 
-  const formattedDistance =
-    recordedDistanceMeters >= 1000
-      ? `${(recordedDistanceMeters / 1000).toFixed(2)} km`
-      : `${recordedDistanceMeters} m`;
-
   return (
     <>
-      {/* Screen Lock Overlay */}
-      {isLocked && (
-        <div className="fixed inset-0 z-[1000] bg-slate-950/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="flex flex-col items-center gap-6 max-w-xs text-center">
-            <div className="w-24 h-24 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center shadow-2xl shadow-black">
-              <Lock className="w-12 h-12 text-slate-400" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-black text-white tracking-tight mb-2">Pantalla Bloqueada</h2>
-              <p className="text-sm text-slate-400">El GPS sigue grabando en segundo plano. Manten presionado el botón para desbloquear.</p>
-            </div>
-            
-            <button
-              onPointerDown={(e) => {
-                const target = e.currentTarget;
-                target.style.transform = 'scale(0.9)';
-                target.dataset.timer = setTimeout(() => {
-                  setIsLocked(false);
-                }, 1000) as any;
-              }}
-              onPointerUp={(e) => {
-                const target = e.currentTarget;
-                target.style.transform = 'scale(1)';
-                clearTimeout(parseInt(target.dataset.timer || '0'));
-              }}
-              onPointerLeave={(e) => {
-                const target = e.currentTarget;
-                target.style.transform = 'scale(1)';
-                clearTimeout(parseInt(target.dataset.timer || '0'));
-              }}
-              className="mt-8 px-8 py-4 rounded-3xl bg-slate-800 border-2 border-slate-700 text-slate-300 font-bold flex items-center gap-3 transition-all select-none"
-            >
-              <Unlock className="w-5 h-5" />
-              <span>Mantener presionado 1s</span>
-            </button>
-          </div>
-        </div>
-      )}
+    <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] p-4 pb-8 z-[1000] flex flex-col gap-3 transition-transform">
+      {/* Drag Handle */}
+      <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-2" />
 
-    <div className="absolute bottom-0 left-0 right-0 z-[500] p-3 md:p-4 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent pointer-events-none pb-[calc(env(safe-area-inset-bottom,16px)+12px)]">
-      <div className="max-w-md mx-auto pointer-events-auto flex flex-col gap-2.5">
-        
-        {/* Undo notification banner if recently marked */}
-        {showFeedback && lastMarkedStop && (
-          <div className="flex items-center justify-between bg-emerald-950/95 border border-emerald-500/50 text-emerald-200 px-3 py-2 rounded-2xl shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <div className="flex items-center gap-2 overflow-hidden">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <div className="text-xs truncate">
-                <span className="font-bold text-white">#{lastMarkedStop.sequence}</span> {lastMarkedStop.name}
-              </div>
-            </div>
-            {onUndoLastStop && (
-              <button
-                onClick={onUndoLastStop}
-                className="shrink-0 flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:text-white bg-emerald-900/60 hover:bg-emerald-800 px-2 py-1 rounded-lg transition-all"
-              >
-                <RotateCcw className="w-3 h-3" />
-                Deshacer
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* 1-Tap Category Selector */}
-        <div className="grid grid-cols-3 gap-2 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-xl">
-          {/* Oficial */}
-          <button
-            onClick={() => setSelectedCategory('oficial')}
-            className={`py-2 px-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all ${
-              selectedCategory === 'oficial'
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 scale-[1.02]'
-                : 'text-slate-400 hover:text-slate-200 bg-slate-800/40'
-            }`}
-          >
+      {!isRecording ? (
+        // IDLE STATE
+        <button
+          onClick={onStartRecording}
+          className="w-full py-5 rounded-2xl font-black text-xl flex items-center justify-center gap-3 text-white transition-all transform active:scale-95 shadow-xl bg-blue-600 hover:bg-blue-700 select-none"
+        >
+          <Play className="w-6 h-6 fill-white" />
+          <span className="tracking-wide">Comenzar a registrar</span>
+        </button>
+      ) : (
+        // ACTIVE CAPTURE STATE
+        <>
+          {/* Accuracy & Last Stop Header */}
+          <div className="flex items-center justify-between px-2 mb-1">
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-              <span>Oficial</span>
-            </div>
-            <span className="text-[9px] opacity-75 font-normal">Caseta / Poste</span>
-          </button>
-
-          {/* Costumbre */}
-          <button
-            onClick={() => setSelectedCategory('costumbre')}
-            className={`py-2 px-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all ${
-              selectedCategory === 'costumbre'
-                ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 scale-[1.02]'
-                : 'text-slate-400 hover:text-slate-200 bg-slate-800/40'
-            }`}
-          >
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-              <span>Costumbre</span>
-            </div>
-            <span className="text-[9px] opacity-75 font-normal">Esquina común</span>
-          </button>
-
-          {/* Base */}
-          <button
-            onClick={() => setSelectedCategory('base')}
-            className={`py-2 px-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all ${
-              selectedCategory === 'base'
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 scale-[1.02]'
-                : 'text-slate-400 hover:text-slate-200 bg-slate-800/40'
-            }`}
-          >
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
-              <span>Base</span>
-            </div>
-            <span className="text-[9px] opacity-75 font-normal">Terminal / Fin</span>
-          </button>
-        </div>
-
-        {/* Action Buttons: Giant High-Impact Thumb Mark + GPS Recording */}
-        <div className="flex items-stretch gap-2.5">
-          
-          {/* Lock Screen Toggle */}
-          <button
-            onClick={() => setIsLocked(true)}
-            className="px-4 py-3.5 rounded-2xl flex flex-col items-center justify-center border border-slate-700/80 bg-slate-900/90 hover:bg-slate-800 text-slate-300 font-bold text-xs transition-all active:scale-95 shadow-xl shrink-0"
-          >
-            <Lock className="w-4 h-4 mb-1 text-slate-400" />
-            <span className="leading-tight text-[11px] whitespace-nowrap">Bloquear</span>
-          </button>
-          
-          {/* Continuous Recording Toggle */}
-          <button
-            onClick={isRecording ? onStopRecording : onStartRecording}
-            className={`px-4 py-3.5 rounded-2xl flex flex-col items-center justify-center border font-bold text-xs transition-all active:scale-95 shadow-xl shrink-0 ${
-              isRecording
-                ? 'bg-rose-600/20 text-rose-300 border-rose-500/60 shadow-rose-950/40'
-                : 'bg-slate-900/90 text-slate-300 border-slate-700/80 hover:bg-slate-800'
-            }`}
-          >
-            <div className="flex items-center gap-1.5 mb-0.5">
-              {isRecording ? (
-                <>
-                  <span className="relative flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
-                  </span>
-                  <Square className="w-4 h-4 text-rose-400 fill-current" />
-                </>
-              ) : (
-                <Radio className="w-4 h-4 text-rose-500" />
-              )}
-            </div>
-            <span className="leading-tight text-[11px] whitespace-nowrap">
-              {isRecording ? 'Detener' : 'Grabar GPS'}
-            </span>
-            {isRecording && (
-              <span className="text-[9px] font-mono text-rose-300/80 mt-0.5">
-                {recordedPointsCount} pts · {formattedDistance}
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <span className="text-xs font-semibold text-slate-600">
+                GPS: ±{Math.round(currentPosition.accuracy || 0)}m
               </span>
+            </div>
+            {lastMarkedStop && (
+              <div className="text-[10px] text-slate-400 max-w-[150px] truncate">
+                Última: {lastMarkedStop.name}
+              </div>
             )}
-          </button>
+          </div>
 
-          {/* Giant Thumb Button: Marcar Parada Aquí */}
+          {/* Giant Thumb Button */}
           <button
             onClick={handleMark}
             disabled={isMarking}
-            className={`flex-1 py-5 md:py-6 px-4 rounded-3xl font-black text-lg md:text-xl flex items-center justify-center gap-2.5 text-white transition-all transform active:scale-95 shadow-2xl relative overflow-hidden select-none ${
-              selectedCategory === 'oficial'
-                ? 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 shadow-emerald-900/50 hover:from-emerald-500 hover:to-teal-500'
-                : selectedCategory === 'costumbre'
-                ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-orange-600 shadow-amber-900/50 hover:from-amber-500 hover:to-orange-500'
-                : 'bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 shadow-purple-900/50 hover:from-purple-500 hover:to-indigo-500'
-            }`}
+            className="w-full py-5 rounded-2xl font-black text-xl flex items-center justify-center gap-3 text-white transition-all transform active:scale-95 shadow-xl bg-emerald-600 hover:bg-emerald-700 select-none"
           >
             {isMarking ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Geocodificando cruce...</span>
+                <Loader2 className="w-6 h-6 animate-spin" />
+                <span>Guardando...</span>
               </>
             ) : (
               <>
-                <MapPin className="w-5 h-5 fill-white/20" />
-                <span className="tracking-wide uppercase">📍 Marcar Parada Aquí</span>
-                <Sparkles className="w-4 h-4 opacity-75 hidden sm:inline" />
+                <MapPin className="w-6 h-6" />
+                <span className="tracking-wide">Registrar parada</span>
               </>
             )}
           </button>
-        </div>
 
-      </div>
+          {/* Action Row */}
+          <div className="flex items-center gap-2 mt-1">
+            <button
+              onClick={onUndoLastStop}
+              disabled={!lastMarkedStop}
+              className={`flex-1 py-3 rounded-xl font-bold text-sm flex justify-center items-center gap-2 transition-colors ${
+                lastMarkedStop ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+              }`}
+            >
+              <Undo2 className="w-4 h-4" />
+              Borrar última
+            </button>
+            <button
+              onClick={onStopRecording}
+              className="flex-1 py-3 rounded-xl font-bold text-sm flex justify-center items-center gap-2 bg-rose-100 text-rose-700 hover:bg-rose-200 transition-colors"
+            >
+              <StopCircle className="w-4 h-4" />
+              Finalizar
+            </button>
+          </div>
+        </>
+      )}
     </div>
     </>
   );

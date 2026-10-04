@@ -23,6 +23,7 @@ type HistoryAction =
 export function App() {
   const [isDbReady, setIsDbReady] = useState(false);
   const [isDesktopMode, setIsDesktopMode] = useState(false);
+  const [mappingMode, setMappingMode] = useState<'zone' | 'route'>('zone');
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [routeModalMode, setRouteModalMode] = useState<'new' | 'variant' | null>(null);
   const [lastMarkedStop, setLastMarkedStop] = useState<Stop | null>(null);
@@ -63,7 +64,7 @@ export function App() {
     acceptRecordedTrackAsOfficial,
     saveAsVariant,
     createCustomRoute,
-  } = useTransitData();
+  } = useTransitData(mappingMode);
 
   // All stops across all routes for export
   const allStops = useLiveQuery(() => db.stops.toArray(), []) || [];
@@ -231,25 +232,17 @@ export function App() {
     setCenterTrigger(prev => prev + 1);
   }, []);
 
-  if (!isDbReady) {
-    return (
-      <div className="h-full w-full bg-slate-950 flex flex-col items-center justify-center text-slate-300">
-        <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center animate-pulse mb-3">
-          <span className="text-xl">🚌</span>
-        </div>
-        <p className="font-bold text-sm text-white">Iniciando Tepic Transit Studio...</p>
-        <p className="text-xs text-slate-500 mt-1">Cargando 39 rutas oficiales SEMOVI y base de datos local</p>
-      </div>
-    );
-  }
+  if (!isDbReady) { return <div className="h-full w-full bg-slate-50"></div>; }
 
   return (
-    <div className="h-full w-full flex flex-col bg-slate-950 text-slate-100 overflow-hidden font-sans relative">
+    <div className="h-full w-full flex flex-col bg-white text-slate-900 overflow-hidden font-sans relative">
       
       {/* Top App Header */}
       <Header
+        mappingMode={mappingMode}
+        onToggleMappingMode={setMappingMode}
         routes={routes}
-        selectedRoute={selectedRoute}
+        selectedRoute={mappingMode === 'route' ? selectedRoute : null}
         selectedRouteId={selectedRouteId}
         onSelectRouteId={(id) => {
           setSelectedRouteId(id);
@@ -257,7 +250,7 @@ export function App() {
             setVisibleRouteIds([...visibleRouteIds, id]);
           }
         }}
-        visibleRouteIds={visibleRouteIds}
+        visibleRouteIds={mappingMode === 'zone' ? routes.map(r => r.id) : visibleRouteIds}
         onOpenRouteManager={() => setIsRouteManagerOpen(true)}
         direction={direction}
         onChangeDirection={setDirection}
@@ -287,6 +280,15 @@ export function App() {
         />
       )}
         
+        
+          {/* Floating GPS Button */}
+          <button
+            onClick={handleCenterGps}
+            className="absolute bottom-64 right-4 z-[900] w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-blue-600 border border-slate-100 hover:bg-blue-50 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-crosshair"><circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/></svg>
+          </button>
+
         {/* Interactive Map */}
         <div className="flex-1 min-h-0 relative">
           <MapViewer
@@ -299,6 +301,7 @@ export function App() {
             recordedPoints={recordedPoints}
             deviationPoints={deviationStatus.deviationPoints}
             isDesktopMode={isDesktopMode}
+            isRecording={isRecording}
             onStopDragEnd={handleStopDragEnd}
             onMapClick={handleMapClick}
             centerTrigger={centerTrigger}
@@ -306,23 +309,12 @@ export function App() {
             onRouteTraceEdited={handleRouteTraceEdited}
           />
 
-          {/* Deviation Alert Banner (SEMOVI vs Realidad) */}
-          <DeviationBanner
-            deviationStatus={deviationStatus}
-            routeName={selectedRoute?.name || 'Ruta'}
-            isDismissed={isDeviationDismissed}
-            onSaveAsVariant={() => setRouteModalMode('variant')}
-            onAcceptTrace={handleAcceptTrace}
-            onDismiss={() => {
-              setIsDeviationDismissed(true);
-              clearDeviation();
-            }}
-            onReopen={() => setIsDeviationDismissed(false)}
-          />
+          
 
           {/* iPhone Ergonomic Field Thumb Bar */}
           {!isDesktopMode && (
             <FieldControls
+              mappingMode={mappingMode}
               currentPosition={position}
               onMarkStop={handleMarkStop}
               isRecording={isRecording}

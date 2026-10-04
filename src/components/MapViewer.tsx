@@ -17,6 +17,7 @@ interface MapViewerProps {
   recordedPoints: GpsBreadcrumb[];
   deviationPoints: [number, number][];
   isDesktopMode: boolean;
+  isRecording?: boolean;
   isEditingRoute?: boolean;
   onRouteTraceEdited?: (newCoords: [number, number][]) => void;
   onStopDragEnd?: (stopId: string, newCoords: Coordinates) => void;
@@ -34,6 +35,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   recordedPoints,
   deviationPoints,
   isDesktopMode,
+  isRecording,
   isEditingRoute,
   onRouteTraceEdited,
   onStopDragEnd,
@@ -49,14 +51,14 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   const officialGlowLineRef = useRef<L.Polyline | null>(null);
   const recordedLineRef = useRef<L.Polyline | null>(null);
   const deviationLineRef = useRef<L.Polyline | null>(null);
-  const userMarkerRef = useRef<L.Marker | null>(null);
+  const userMarkerRef = useRef<any>(null);
   const accuracyCircleRef = useRef<L.Circle | null>(null);
   const stopsLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const terminusGroupRef = useRef<L.LayerGroup | null>(null);
   const visibleRoutesGroupRef = useRef<L.LayerGroup | null>(null);
 
-  type BasemapType = 'google-streets' | 'google-hybrid' | 'osm' | 'dark';
-  const [basemap, setBasemap] = useState<BasemapType>('google-streets');
+  type BasemapType = 'google-streets' | 'google-hybrid' | 'osm' | 'dark' | 'carto-light';
+  const [basemap, setBasemap] = useState<BasemapType>('carto-light');
   // useRef so effects always read current value synchronously (no stale closure)
   const mapReadyRef = useRef(false);
   // Incrementing this forces dependent effects to re-run after map is initialized
@@ -166,11 +168,17 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       url = 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png';
       subdomains = 'abcd';
       maxZoom = 20;
+    } else if (basemap === 'carto-light') {
+      // Using standard OSM but we'll apply a CSS filter to make it look clean/light
+      url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+      subdomains = 'abc';
+      maxZoom = 19;
     }
 
     const newLayer = L.tileLayer(url, {
       subdomains,
       maxZoom,
+      className: basemap === 'carto-light' ? 'map-tiles-clean' : ''
     }).addTo(mapInstanceRef.current);
 
     tileLayerRef.current = newLayer;
@@ -446,30 +454,21 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       accuracyCircleRef.current.setRadius(Math.max(accuracy, 6));
     }
 
-    // Vehicle/surveyor dot
+    // Vehicle/surveyor dot (Vector CircleMarker ensures it never gets clipped or hidden by CSS)
     if (!userMarkerRef.current) {
-      const userIconHtml = `
-        <div class="relative flex items-center justify-center">
-          <div class="absolute w-8 h-8 rounded-full bg-blue-500 animate-ping opacity-60"></div>
-          <div class="relative w-6 h-6 rounded-full bg-blue-600 border-2 border-white shadow-lg flex items-center justify-center">
-            <div class="w-2.5 h-2.5 rounded-full bg-white"></div>
-          </div>
-        </div>
-      `;
-
-      const userIcon = L.divIcon({
-        className: 'user-gps-icon',
-        html: userIconHtml,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
-      });
-
-      userMarkerRef.current = L.marker([lat, lng], {
-        icon: userIcon,
-        zIndexOffset: 1000,
+      userMarkerRef.current = L.circleMarker([lat, lng], {
+        radius: 8,
+        color: '#ffffff',
+        weight: 3,
+        fillColor: '#2563eb',
+        fillOpacity: 1,
+        pane: 'markerPane',
       }).addTo(map);
     } else {
       userMarkerRef.current.setLatLng([lat, lng]);
+      if (userMarkerRef.current.bringToFront) {
+        userMarkerRef.current.bringToFront();
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPosition, mapReadyTick]);
@@ -499,11 +498,31 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     };
   }, [mapReadyTick]);
 
+  
+  // Tilt & Zoom when recording starts/stops
+  useEffect(() => {
+    if (!mapInstanceRef.current || !currentPosition.lat) return;
+    
+    if (isRecording) {
+      setIsFollowing(true);
+      mapInstanceRef.current.flyTo([currentPosition.lat, currentPosition.lng], 19, {
+        animate: true,
+        duration: 1.5,
+      });
+    } else {
+      // Zoom back out when finished
+      mapInstanceRef.current.flyTo([currentPosition.lat, currentPosition.lng], 16, {
+        animate: true,
+        duration: 1.5,
+      });
+    }
+  }, [isRecording]);
+
   // Re-center on centerTrigger change (Waze-like zoom)
   useEffect(() => {
     if (!mapInstanceRef.current || !centerTrigger) return; // ignore initial 0
     setIsFollowing(true); // Reactivate follow mode
-    mapInstanceRef.current.flyTo([currentPosition.lat, currentPosition.lng], 18, {
+    mapInstanceRef.current.flyTo([currentPosition.lat, currentPosition.lng], isRecording ? 19 : 18, {
       animate: true,
       duration: 1.2,
     });
@@ -516,7 +535,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   }, [heading]);
 
   return (
-    <div className="relative w-full h-full min-h-[300px] bg-slate-900 overflow-hidden">
+    <div className="relative w-full h-full min-h-[300px] bg-slate-900 overflow-hidden" >
       {/* Map Wrapper: oversized to avoid empty corners when rotated */}
       <div 
         className="absolute transition-transform duration-300 ease-out z-0 pointer-events-auto"
@@ -525,7 +544,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           left: '-30%',
           width: '160%',
           height: '160%',
-          transform: `rotate(${-heading}deg)`,
+          transform: `rotate(${-heading}deg) ${isRecording ? 'rotateX(45deg) scale(1.15)' : ''}`,
           transformOrigin: 'center center',
         }}
       >
@@ -533,11 +552,11 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       </div>
 
       {/* Floating Basemap Selector */}
-      <div className="absolute top-4 left-4 z-[400] flex bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 shadow-2xl text-xs font-semibold text-slate-300 gap-1 pointer-events-auto">
+      <div className="absolute top-36 left-4 z-[400] flex flex-col md:flex-row bg-white/90 backdrop-blur-md border border-slate-200 rounded-xl p-1 shadow-lg text-xs font-semibold text-slate-600 gap-1 pointer-events-auto">
         <button
           onClick={() => setBasemap('google-streets')}
           className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
-            basemap === 'google-streets' ? 'bg-blue-600 text-white shadow' : 'hover:text-white hover:bg-slate-800'
+            basemap === 'google-streets' ? 'bg-blue-600 text-white shadow' : 'hover:text-blue-600 hover:bg-slate-100'
           }`}
         >
           <span>Google Calles</span>
@@ -545,38 +564,25 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         <button
           onClick={() => setBasemap('google-hybrid')}
           className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
-            basemap === 'google-hybrid' ? 'bg-blue-600 text-white shadow' : 'hover:text-white hover:bg-slate-800'
+            basemap === 'google-hybrid' ? 'bg-blue-600 text-white shadow' : 'hover:text-blue-600 hover:bg-slate-100'
           }`}
         >
           <span>Satélite</span>
         </button>
         <button
-          onClick={() => setBasemap('osm')}
+          onClick={() => setBasemap('carto-light')}
           className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
-            basemap === 'osm' ? 'bg-blue-600 text-white shadow' : 'hover:text-white hover:bg-slate-800'
+            basemap === 'carto-light' ? 'bg-blue-600 text-white shadow' : 'hover:text-blue-600 hover:bg-slate-100'
           }`}
         >
-          <span>OpenSource</span>
+          <span>Limpio</span>
         </button>
-        <button
-          onClick={() => setBasemap('dark')}
-          className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
-            basemap === 'dark' ? 'bg-blue-600 text-white shadow' : 'hover:text-white hover:bg-slate-800'
-          }`}
-        >
-          <span>Oscuro</span>
-        </button>
+        
+        
       </div>
       
       {/* Follow mode indicator/button */}
-      {!isFollowing && (
-        <button 
-          onClick={() => setIsFollowing(true)}
-          className="absolute bottom-6 right-6 z-[400] bg-blue-600 text-white p-3 rounded-full shadow-lg border border-white/20 animate-bounce pointer-events-auto"
-        >
-          🎯 Centrar
-        </button>
-      )}
+      
     </div>
   );
 };

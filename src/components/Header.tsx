@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Navigation,
+  List,
   Sun,
   SunDim,
   PlusCircle,
@@ -14,6 +15,8 @@ import {
 import type { RouteItem, DirectionType } from '../types';
 
 interface HeaderProps {
+  mappingMode: 'zone' | 'route';
+  onToggleMappingMode: (mode: 'zone' | 'route') => void;
   routes: RouteItem[];
   selectedRoute: RouteItem | null;
   selectedRouteId: string;
@@ -36,6 +39,8 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  mappingMode,
+  onToggleMappingMode,
   routes,
   selectedRoute,
   selectedRouteId,
@@ -56,154 +61,117 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenExportModal,
   onCenterGps,
 }) => {
-  // GPS accuracy status color
-  const accuracyColor =
-    gpsAccuracy <= 5
-      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-      : gpsAccuracy <= 15
-      ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-      : 'bg-rose-500/20 text-rose-400 border-rose-500/40';
-
   return (
-    <header className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-slate-100 px-3 py-2 z-30 shadow-lg select-none">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5">
+    
+    <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 text-slate-800 px-3 py-2.5 z-30 shadow-sm select-none absolute top-0 left-0 right-0">
+      <div className="max-w-7xl mx-auto flex flex-col items-center justify-between gap-3 relative">
         
-        {/* Top line on mobile: Brand + GPS Chip + WakeLock */}
-        <div className="w-full md:w-auto flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-emerald-500 flex items-center justify-center shadow-md shadow-blue-500/30">
+        {/* Branding Row */}
+        <div className="w-full flex justify-between items-center px-1">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-md shadow-blue-500/20">
               <Navigation className="w-4 h-4 text-white" />
             </div>
-            <div>
-              <h1 className="font-bold text-sm tracking-tight leading-none text-white flex items-center gap-1.5">
-                Tepic Transit <span className="text-[10px] font-semibold uppercase px-1 py-0.5 rounded bg-blue-500/30 text-blue-300 border border-blue-400/30">Studio</span>
-              </h1>
-              <p className="text-[10px] text-slate-400 leading-tight">Mapeador SEMOVI & Xalisco</p>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <h1 className="font-extrabold text-sm tracking-tight text-slate-800">
+                  PorDóndePasa
+                </h1>
+                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                  Studio
+                </span>
+              </div>
+              <p className="text-[10px] font-medium text-slate-400">Herramienta oficial de mapeo</p>
             </div>
           </div>
 
-          {/* Quick status chips */}
+          {/* Utility Actions */}
           <div className="flex items-center gap-1.5">
-            {/* GPS Accuracy Chip */}
-            <button
-              onClick={onCenterGps}
-              title="Centrar en ubicación GPS"
-              className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-mono font-semibold border transition-all active:scale-95 ${accuracyColor}`}
+            <button 
+              onClick={onToggleDesktopMode} 
+              className={`p-2 transition-colors rounded-full border ${isDesktopMode ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-400 hover:bg-blue-50 hover:text-blue-600 border-slate-100'}`}
+              title="Abrir editor de paradas"
             >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-current"></span>
-              </span>
-              <span>GPS ±{gpsAccuracy}m</span>
-              <Crosshair className="w-3 h-3 opacity-70" />
+              <List className="w-4 h-4" />
             </button>
-
-            {/* Wake Lock indicator */}
-            <button
-              onClick={onToggleWakeLock}
-              title={wakeLockActive ? 'Pantalla siempre activa (Wake Lock ON)' : 'Activar pantalla siempre encendida'}
-              className={`p-1.5 rounded-lg border text-xs flex items-center transition-all ${
-                wakeLockActive
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm shadow-amber-500/20'
-                  : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
-              }`}
-            >
-              {wakeLockActive ? <Sun className="w-4 h-4" /> : <SunDim className="w-4 h-4" />}
+            <button onClick={onOpenExportModal} className="p-2 text-slate-400 hover:text-blue-600 transition-colors bg-slate-50 hover:bg-blue-50 rounded-full border border-slate-100">
+              <Download className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Central Controls: Route Selector & Direction Pills */}
-        <div className="w-full md:w-auto flex-1 flex flex-wrap items-center justify-center md:justify-start gap-2 max-w-xl">
-          {/* Route dropdown */}
-          <div className="flex-1 min-w-[200px] relative">
-            <select
-              value={selectedRouteId}
-              onChange={(e) => {
-                if (e.target.value === '__NEW__') {
-                  onOpenNewRouteModal();
-                } else {
-                  onSelectRouteId(e.target.value);
-                }
-              }}
-              className="w-full bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-3 py-1.5 text-xs md:text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-inner"
-            >
-              <optgroup label="⭐ Rutas de Transporte Público (Tepic)">
-                {routes
-                  .filter(r => !r.isCustom)
-                  .sort((a, b) => a.name.localeCompare(b.name, 'es'))
-                  .map(r => (
-                    <option key={r.id} value={r.id}>
-                      {r.name} {r.status === 'coming_soon' ? '(Próximamente)' : ''}
-                    </option>
-                  ))}
-              </optgroup>
-              {routes.some(r => r.isCustom) && (
-                <optgroup label="🛠️ Nuevas Rutas y Ramales">
-                  {routes
-                    .filter(r => r.isCustom)
-                    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
-                    .map(r => (
-                      <option key={r.id} value={r.id}>
-                        {r.name} {r.status === 'coming_soon' ? '(Próximamente)' : ''}
-                      </option>
-                    ))}
-                </optgroup>
-              )}
-              <option value="__NEW__" className="text-emerald-400 font-bold">
-                ➕ + Nueva Ruta (ej. Xalisco)
-              </option>
-            </select>
+        {/* Top Floating Toggle: Master Mapping Mode */}
+        <div className="flex bg-slate-100 p-1 rounded-full border border-slate-200 w-full sm:w-[320px] mx-auto shadow-inner relative z-10">
+          <button
+            onClick={() => onToggleMappingMode('zone')}
+            className={`flex-1 py-1.5 px-3 rounded-full text-[13px] font-bold transition-all ${
+              mappingMode === 'zone'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            📍 Zona Libre
+          </button>
+          <button
+            onClick={() => onToggleMappingMode('route')}
+            className={`flex-1 py-1.5 px-3 rounded-full text-[13px] font-bold transition-all ${
+              mappingMode === 'route'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            🚌 Por Ruta
+          </button>
+        </div>
+
+        {/* Central Controls (Only visible in Route Mode) */}
+        {mappingMode === 'route' && (
+          <div className="w-full flex items-center gap-2 max-w-xl">
+            <div className="flex-1 min-w-[150px] relative">
+              <select
+                value={selectedRouteId}
+                onChange={(e) => {
+                  if (e.target.value === '__NEW__') {
+                    onOpenNewRouteModal();
+                  } else {
+                    onSelectRouteId(e.target.value);
+                  }
+                }}
+                className="w-full bg-white border border-slate-300 text-slate-800 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm"
+              >
+                <option value="">Seleccionar ruta...</option>
+                {routes.map(r => (
+                  <option key={r.id} value={r.id}>
+                    {r.name} {r.status === 'coming_soon' ? '(Próximamente)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedRoute && (
+              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+                <button
+                  onClick={() => onChangeDirection('ida')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    direction === 'ida' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500'
+                  }`}
+                >
+                  Ida
+                </button>
+                <button
+                  onClick={() => onChangeDirection('vuelta')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    direction === 'vuelta' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500'
+                  }`}
+                >
+                  Vuelta
+                </button>
+              </div>
+            )}
           </div>
-          <button
-            onClick={onOpenRouteManager}
-            className="ml-2 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md"
-          >
-            Capas ({visibleRouteIds.length}/{routes.length})
-          </button>
-        </div>
-
-        {/* Right controls: Simulator + Mode Switcher + Export */}
-        <div className="w-full md:w-auto flex items-center justify-end gap-2">
-          {/* Simulator toggle for Desktop QA */}
-          <button
-            onClick={onToggleSimulation}
-            title={isSimulating ? "Detener simulación de viaje en camión" : "Simular viaje en camión en Tepic (+650m desvío)"}
-            className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all ${
-              isSimulating
-                ? 'bg-purple-600/30 text-purple-300 border-purple-500/50 animate-pulse'
-                : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
-            }`}
-          >
-            {isSimulating ? <Square className="w-3.5 h-3.5 text-purple-400" /> : <Play className="w-3.5 h-3.5 text-purple-400" />}
-            <span className="hidden sm:inline">{isSimulating ? 'Simulando' : 'Simular'}</span>
-          </button>
-
-          {/* Desktop / Mobile mode switch */}
-          <button
-            onClick={onToggleDesktopMode}
-            title={isDesktopMode ? "Cambiar a vista de Trabajo de Campo" : "Editor de Paradas y Trazos"}
-            className={`p-1.5 md:px-2.5 md:py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all ${
-              isDesktopMode
-                ? 'bg-blue-600 text-white border-blue-500 shadow-md'
-                : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
-            }`}
-          >
-            {isDesktopMode ? <Laptop className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
-            <span className="hidden md:inline">{isDesktopMode ? 'Cerrar Editor' : 'Editor de Rutas'}</span>
-          </button>
-
-          {/* Export JSON Button */}
-          <button
-            onClick={onOpenExportModal}
-            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-700/20 active:scale-95 transition-all"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Exportar</span>
-          </button>
-        </div>
-
+        )}
       </div>
     </header>
+
   );
 };

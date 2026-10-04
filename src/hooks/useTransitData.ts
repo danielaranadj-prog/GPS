@@ -7,14 +7,14 @@ import { reverseGeocode } from '../services/nominatim';
 
 import * as turf from '@turf/turf';
 
-export function useTransitData() {
+export function useTransitData(mappingMode: 'zone' | 'route', ) {
   const routes = useLiveQuery(() => db.routes.toArray(), []) || [];
   const [selectedRouteId, setSelectedRouteId] = useState<string>('');
   const [visibleRouteIds, setVisibleRouteIds] = useState<string[]>([]);
   const [direction, setDirection] = useState<DirectionType>('ida');
 
   // Fallback to first route if selected not found
-  const selectedRoute = routes.find(r => r.id === selectedRouteId) || routes[0] || null;
+  const selectedRoute = routes.find(r => r.id === selectedRouteId) || null;
 
   // Stops: computed dynamically by geometric proximity to visible routes.
   // Stops are CITY INFRASTRUCTURE — they are not owned by a route.
@@ -22,6 +22,7 @@ export function useTransitData() {
   // Stops are sorted by their position along the route (orientation-correct).
   const stops = useLiveQuery(
     async () => {
+      if (mappingMode === 'zone') return await db.stops.toArray();
       if (visibleRouteIds.length === 0 || routes.length === 0) return [];
       const allStops = await db.stops.toArray();
       if (allStops.length === 0) return [];
@@ -65,14 +66,7 @@ export function useTransitData() {
   ) || [];
 
   // Set default route once routes load
-  useEffect(() => {
-    if (routes.length > 0 && !routes.some(r => r.id === selectedRouteId)) {
-      setSelectedRouteId(routes[0].id);
-      setVisibleRouteIds([routes[0].id]);
-    } else if (routes.length > 0 && visibleRouteIds.length === 0) {
-      setVisibleRouteIds([selectedRouteId]);
-    }
-  }, [routes, selectedRouteId, visibleRouteIds.length]);
+  
 
   // Add stop with auto-naming, sequence calculation and tactile chime
   const addStop = useCallback(async (
@@ -81,7 +75,8 @@ export function useTransitData() {
     customName?: string,
     accuracy?: number
   ) => {
-    if (!selectedRoute) return null;
+    // In zone mode, selectedRoute can be null. We just won't snap to its line.
+    // if (!selectedRoute && mappingMode === 'route') return null;
 
     
     const currentSequence = stops.length + 1;
@@ -89,7 +84,7 @@ export function useTransitData() {
 
     // Snap to route geometry to survive the strict 1.5m filter
     let finalCoords = coords;
-    const baseCoords = selectedRoute.ida;
+    const baseCoords = selectedRoute?.ida;
     if (baseCoords && baseCoords.length >= 2) {
       const pt = turf.point([coords.lng, coords.lat]);
       const baseLine = turf.lineString(baseCoords.map(p => [p[1], p[0]]));

@@ -330,7 +330,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
             }`}
           >
             <GitMerge className="w-4 h-4" />
-            <span className="text-center">{isEditingRoute ? 'Fin Edición' : 'Editar Nodos'}</span>
+            <span className="text-center">{isEditingRoute ? 'Fin Edición' : 'Editar Trazo'}</span>
           </button>
           
           <button
@@ -391,7 +391,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         <div className="flex items-center justify-between text-xs font-semibold text-slate-400 px-1">
           <span>Paradas Registradas ({stops.length})</span>
-          <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2">
             <span className="text-[10px] text-blue-400">Arrastrables</span>
             <button onClick={handleAutoLinkRoutes} className="cursor-pointer hover:text-white hover:bg-slate-700 flex items-center bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 transition-colors" title="Vincular automáticamente rutas cercanas a estas paradas">
               <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-400" />
