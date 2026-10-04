@@ -21,12 +21,12 @@ export class TransitStudioDatabase extends Dexie {
       routes: 'id, code, category, isCustom',
       tracks: 'id, routeId, direction, startedAt',
     });
-    // Version 3: force re-seed after catalog cleanup (15 routes)
-    this.version(3).stores({
+    // Version 4: force re-seed to load all 60 routes
+    this.version(4).stores({
       stops: 'id, type, direction, sequence, *routeIds, createdAt',
       routes: 'id, code, category, isCustom',
       tracks: 'id, routeId, direction, startedAt',
-    }); // version 3: non-destructive — initializeDatabase() bulkPut handles re-sync
+    }); // version 4: non-destructive — initializeDatabase() bulkPut handles re-sync
   }
 }
 
