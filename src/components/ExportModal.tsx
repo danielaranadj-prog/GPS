@@ -7,7 +7,8 @@ import {
   FileJson,
   Upload,
   Code,
-  FileDown
+  FileDown,
+  Share2
 } from 'lucide-react';
 import type { Stop, RouteItem, ExportStopsFile } from '../types';
 import { db } from '../db';
@@ -80,6 +81,26 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   };
 
   
+  const handleShare = async () => {
+    const filename = activeTab === 'stops' ? 'stops.json' : 'routes.json';
+    const blob = new Blob([currentJsonString], { type: 'application/json' });
+    const file = new File([blob], filename, { type: 'application/json' });
+    
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          title: `Tepic Transit - ${filename}`,
+          text: `Base de datos exportada de ${activeTab}`,
+          files: [file]
+        });
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      alert('Tu navegador no soporta compartir archivos nativamente. Usa el botón de descargar.');
+    }
+  };
+
   const handleDownloadGeoJSON = () => {
     let geojson;
     if (activeTab === 'stops') {
@@ -211,6 +232,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleShare}
+              className="p-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 flex items-center justify-center transition-all"
+              title="Compartir por WhatsApp/AirDrop"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
             <button
               onClick={handleCopy}
               className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-bold text-xs flex items-center gap-1.5 transition-all"
