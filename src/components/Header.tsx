@@ -63,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     
-    <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 text-slate-800 px-3 py-2.5 z-30 shadow-sm select-none absolute top-0 left-0 right-0">
+    <header className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 px-3 pt-[max(env(safe-area-inset-top),0.75rem)] pb-2.5 z-30 shadow-sm select-none absolute top-0 left-0 right-0">
       <div className="max-w-7xl mx-auto flex flex-col items-center justify-between gap-3 relative">
         
         {/* Branding Row */}
@@ -74,14 +74,14 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
-                <h1 className="font-extrabold text-sm tracking-tight text-slate-800">
+                <h1 className="font-extrabold text-sm tracking-tight text-slate-800 dark:text-slate-100">
                   PorDóndePasa
                 </h1>
                 <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
                   Studio
                 </span>
               </div>
-              <p className="text-[10px] font-medium text-slate-400">Herramienta oficial de mapeo</p>
+              <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500">Herramienta oficial de mapeo</p>
             </div>
           </div>
 
@@ -89,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-1.5">
             <button 
               onClick={onToggleDesktopMode} 
-              className={`p-2 transition-colors rounded-full border ${isDesktopMode ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-400 hover:bg-blue-50 hover:text-blue-600 border-slate-100'}`}
+              className={`p-2 transition-colors rounded-full border ${isDesktopMode ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 hover:text-blue-600 border-slate-100 dark:border-slate-700'}`}
               title="Abrir editor de paradas"
             >
               <List className="w-4 h-4" />
@@ -107,7 +107,7 @@ export const Header: React.FC<HeaderProps> = ({
             className={`flex-1 py-1.5 px-3 rounded-full text-[13px] font-bold transition-all ${
               mappingMode === 'zone'
                 ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-500 hover:text-slate-700'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
           >
             📍 Zona Libre
@@ -137,7 +137,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onSelectRouteId(e.target.value);
                   }
                 }}
-                className="w-full bg-white border border-slate-300 text-slate-800 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm"
+                className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm"
               >
                 <option value="">Seleccionar ruta...</option>
                 {routes.map(r => (

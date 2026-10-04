@@ -62,9 +62,9 @@ export const FieldControls: React.FC<FieldControlsProps> = ({
 
   return (
     <>
-    <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] p-4 pb-8 z-[1000] flex flex-col gap-3 transition-transform">
+    <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 rounded-t-3xl dark:border-t dark:border-slate-800 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] p-4 pb-[max(env(safe-area-inset-bottom),2rem)] dark:bg-slate-900 z-[1000] flex flex-col gap-3 transition-transform">
       {/* Drag Handle */}
-      <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-2" />
+      <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-2" />
 
       {!isRecording ? (
         // IDLE STATE
@@ -82,12 +82,12 @@ export const FieldControls: React.FC<FieldControlsProps> = ({
           <div className="flex items-center justify-between px-2 mb-1">
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              <span className="text-xs font-semibold text-slate-600">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                 GPS: ±{Math.round(currentPosition.accuracy || 0)}m
               </span>
             </div>
             {lastMarkedStop && (
-              <div className="text-[10px] text-slate-400 max-w-[150px] truncate">
+              <div className="text-[10px] text-slate-400 dark:text-slate-500 max-w-[150px] truncate">
                 Última: {lastMarkedStop.name}
               </div>
             )}

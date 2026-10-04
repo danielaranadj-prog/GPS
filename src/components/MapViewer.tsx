@@ -535,7 +535,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   }, [heading]);
 
   return (
-    <div className="relative w-full h-full min-h-[300px] bg-slate-900 overflow-hidden" >
+    <div className={`relative w-full h-full min-h-[300px] overflow-hidden ${(basemap === "dark" || basemap === "google-hybrid") ? "bg-slate-900" : "bg-[#e5e3df]"}`} >
       {/* Map Wrapper: oversized to avoid empty corners when rotated */}
       <div 
         className="absolute transition-transform duration-300 ease-out z-0 pointer-events-auto"
