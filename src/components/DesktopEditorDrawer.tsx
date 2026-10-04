@@ -272,36 +272,27 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
   };
 
   return (
-    <aside className="w-full h-[60%] md:h-full md:w-96 bg-slate-900/98 backdrop-blur-xl border-t md:border-t-0 md:border-l border-slate-800 flex flex-col z-40 shadow-2xl text-slate-100 overflow-hidden">
+    <aside className="w-full h-[60%] md:h-full md:w-96 bg-white/98 dark:bg-slate-900/98 backdrop-blur-xl border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800 flex flex-col z-40 shadow-2xl text-slate-800 dark:text-slate-100 overflow-hidden">
       
-      {/* Header */}
-      <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ListOrdered className="w-5 h-5 text-blue-400" />
-          <div>
-            <h3 className="font-bold text-sm text-white">Editor de Calidad (QA)</h3>
-            <p className="text-[11px] text-slate-400">
-              {selectedRoute?.name} ({direction.toUpperCase()})
-            </p>
-          </div>
+      
         </div>
         <button
           onClick={onClose}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+          className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100"
         >
           <X className="w-5 h-5" />
         </button>
       </div>
 
       {/* Route Merging Panel */}
-      <div className="hidden md:block p-3.5 bg-slate-950/70 border-b border-slate-800">
+      <div className="hidden md:block p-3.5 bg-slate-50/70 border-b border-slate-200">
         <div className="flex items-center gap-1.5 mb-2">
           <GitMerge className="w-4 h-4 text-emerald-400" />
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600">
             Fusión de Trazos GPS
           </h4>
         </div>
-        <p className="text-[11px] text-slate-400 mb-3 leading-relaxed">
+        <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">
           {recordedPointsLength > 1
             ? `Se han registrado ${recordedPointsLength} puntos en vivo sobre la calle.`
             : 'Graba o simula un recorrido para comparar el trazo de calle contra SEMOVI.'}
@@ -313,7 +304,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
             className={`px-2.5 py-2 rounded-xl border font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all ${
               isEditingRoute
                 ? 'bg-amber-600/20 hover:bg-amber-600/30 border-amber-500/50 text-amber-300'
-                : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'
+                : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600'
             }`}
           >
             <GitMerge className="w-4 h-4" />
@@ -338,7 +329,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 mb-2 mt-3 pt-3 border-t border-slate-800">
+        <div className="grid grid-cols-2 gap-2 mb-2 mt-3 pt-3 border-t border-slate-200">
           <button
             onClick={async () => {
               if (selectedRoute && window.confirm('¿Seguro que deseas marcar esta ruta como Próximamente?')) {
@@ -346,7 +337,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
                 alert('Ruta marcada como Próximamente.');
               }
             }}
-            className="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+            className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
           >
             <span className="text-[14px]">⏱️</span>
             <span>Próximamente</span>
@@ -366,8 +357,8 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
         </div>
 
         {onLoadTrack && (
-          <label className="cursor-pointer px-2.5 py-2 w-full rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center gap-2 transition-all">
-            <UploadCloud className="w-4 h-4 text-slate-400" />
+          <label className="cursor-pointer px-2.5 py-2 w-full rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 font-bold text-xs flex items-center justify-center gap-2 transition-all">
+            <UploadCloud className="w-4 h-4 text-slate-500" />
             <span>Importar Trazo GPS (.json)</span>
             <input type="file" accept=".json,.geojson" onChange={handleImportTrack} className="hidden" />
           </label>
@@ -376,15 +367,20 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
 
       {/* Stops Sequential List */}
       <div className="flex-1 overflow-y-auto p-3 pb-safe space-y-2">
-        <div className="flex items-center justify-between text-xs font-semibold text-slate-400 px-1">
-          <span>Paradas Registradas ({stops.length})</span>
+        <div className="flex items-center justify-between text-xs font-semibold text-slate-500 px-1">
+          <span className="text-base font-bold text-slate-800 dark:text-slate-100">Paradas Registradas ({stops.length})</span>
+          <div className="flex items-center gap-2">
+            <button onClick={onClose} className="md:hidden p-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 mr-2">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
           <div className="hidden md:flex items-center gap-2">
             <span className="text-[10px] text-blue-400">Arrastrables</span>
-            <button onClick={handleAutoLinkRoutes} className="cursor-pointer hover:text-white hover:bg-slate-700 flex items-center bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 transition-colors" title="Vincular automáticamente rutas cercanas a estas paradas">
+            <button onClick={handleAutoLinkRoutes} className="cursor-pointer hover:text-slate-900 hover:bg-slate-200 flex items-center bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 transition-colors" title="Vincular automáticamente rutas cercanas a estas paradas">
               <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-400" />
               Auto-Vincular
             </button>
-            <label className="cursor-pointer hover:text-white flex items-center bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 transition-colors">
+            <label className="cursor-pointer hover:text-slate-900 flex items-center bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 transition-colors">
               <UploadCloud className="w-3.5 h-3.5 mr-1" />
               Importar
               <input type="file" accept=".json" onChange={handleImportStops} className="hidden" />
@@ -393,7 +389,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
         </div>
 
         {stops.length === 0 ? (
-          <div className="text-center py-12 px-4 border border-dashed border-slate-800 rounded-2xl text-slate-500">
+          <div className="text-center py-12 px-4 border border-dashed border-slate-200 rounded-2xl text-slate-500">
             <MapPin className="w-8 h-8 mx-auto mb-2 text-slate-600 opacity-60" />
             <p className="text-sm font-semibold">No hay paradas en este sentido</p>
             <p className="text-xs mt-1">Usa el botón de campo o haz click en el mapa para marcar la primera.</p>
@@ -420,24 +416,24 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
             return (
               <div
                 key={stop.id}
-                className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-2.5 shadow-sm hover:border-slate-600 transition-all"
+                className="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-2.5 shadow-sm hover:border-slate-300 dark:hover:border-slate-600 transition-all"
               >
                 <div className="flex items-center gap-2">
                     {/* Sequence Badge */}
-                    <div className="w-7 h-7 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center font-bold text-xs text-blue-400 shrink-0">
+                    <div className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs text-blue-400 shrink-0">
                       {stop.sequence}
                     </div>
 
                     {/* Details */}
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-xs text-white truncate">
+                      <p className="font-semibold text-xs text-slate-900 dark:text-white truncate">
                         <span className="cursor-pointer hover:text-blue-300" onClick={promptEditName}>{stop.name}</span>
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span onClick={cycleType} className={`cursor-pointer text-[9px] font-bold uppercase px-1.5 py-0.2 rounded border ${badgeBg}`}>
                           {stop.type}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
+                        <span className="text-[10px] text-slate-500 font-mono">
                           {stop.coordinates.lat.toFixed(4)}, {stop.coordinates.lng.toFixed(4)}
                         </span>
                       </div>
@@ -448,14 +444,14 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
                       <button
                         disabled={index === 0}
                         onClick={() => onReorderStop(stop.id, index - 1)}
-                        className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-white disabled:opacity-20"
+                        className="p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-900 disabled:opacity-20"
                       >
                         <ChevronUp className="w-3.5 h-3.5" />
                       </button>
                       <button
                         disabled={index === stops.length - 1}
                         onClick={() => onReorderStop(stop.id, index + 1)}
-                        className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-white disabled:opacity-20"
+                        className="p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-900 disabled:opacity-20"
                       >
                         <ChevronDown className="w-3.5 h-3.5" />
                       </button>
@@ -464,13 +460,13 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
                     {/* Edit and Delete */}
                     <button
                       onClick={promptEditName}
-                      className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-blue-300"
+                      className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 hover:text-blue-300"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => onDeleteStop(stop.id)}
-                      className="p-1.5 rounded-lg hover:bg-rose-950/60 text-slate-400 hover:text-rose-400"
+                      className="p-1.5 rounded-lg hover:bg-rose-950/60 text-slate-500 hover:text-rose-400"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -482,7 +478,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
       </div>
 
       {/* Footer tip */}
-      <div className="p-3 pb-safe border-t border-slate-800 bg-slate-950/40 text-[11px] text-slate-400 flex items-center gap-2">
+      <div className="p-3 pb-safe border-t border-slate-200 bg-slate-50 text-[11px] text-slate-500 flex items-center gap-2">
         <Info className="w-4 h-4 text-blue-400 shrink-0" />
         <span>En el mapa puedes arrastrar cualquier pin directamente a la banqueta deseada.</span>
       </div>
