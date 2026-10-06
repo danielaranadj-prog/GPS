@@ -363,7 +363,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="hidden md:flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <span className="text-[10px] text-blue-400">Arrastrables</span>
             <button onClick={handleAutoLinkRoutes} className="cursor-pointer hover:text-slate-900 hover:bg-slate-200 flex items-center bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 transition-colors" title="Vincular automáticamente rutas cercanas a estas paradas">
               <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-400" />
