@@ -3,6 +3,7 @@ import L from 'leaflet';
 import type { Stop, RouteItem, DirectionType, GpsBreadcrumb, Coordinates } from '../types';
 
 interface MapViewerProps {
+  mappingMode: 'zone' | 'route' | 'stops';
   currentPosition: {
     lat: number;
     lng: number;
@@ -22,10 +23,12 @@ interface MapViewerProps {
   onRouteTraceEdited?: (newCoords: [number, number][]) => void;
   onStopDragEnd?: (stopId: string, newCoords: Coordinates) => void;
   onMapClick?: (coords: Coordinates) => void;
+  onStopClick?: (stopId: string) => void;
   centerTrigger?: number;
 }
 
 export const MapViewer: React.FC<MapViewerProps> = ({
+  mappingMode,
   currentPosition,
   selectedRoute,
   visibleRouteIds,
@@ -40,6 +43,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   onRouteTraceEdited,
   onStopDragEnd,
   onMapClick,
+  onStopClick,
   centerTrigger,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -190,7 +194,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     if (!map) return;
 
     const clickHandler = (e: L.LeafletMouseEvent) => {
-      if (isDesktopMode && onMapClick) {
+      if ((isDesktopMode || mappingMode === 'stops') && onMapClick) {
         onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
       }
     };
@@ -199,7 +203,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     return () => {
       map.off('click', clickHandler);
     };
-  }, [isDesktopMode, onMapClick]);
+  }, [isDesktopMode, mappingMode, onMapClick]);
 
   
   // Render Official SEMOVI Route Line(s)
@@ -372,17 +376,19 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         let iconAnchor: [number, number] = [4, 4];
         let popupAnchor: [number, number] = [0, -6];
 
+        const lockBadge = stop.isLocked ? `<div style="position:absolute;top:-4px;right:-4px;background:#f59e0b;color:white;font-size:8px;line-height:1;border-radius:50%;padding:2px;border:1px solid white;">🔒</div>` : '';
+
         if (zoom <= 13) {
           // Minimal dot — just a 6px colored circle, no text
-          iconHtml = `<div style="width:6px;height:6px;border-radius:50%;background:${badgeColor};border:1px solid rgba(255,255,255,0.7);box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>`;
+          iconHtml = `<div style="position:relative;"><div style="width:6px;height:6px;border-radius:50%;background:${badgeColor};border:1px solid rgba(255,255,255,0.7);box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div></div>`;
           iconSize = [6, 6]; iconAnchor = [3, 3]; popupAnchor = [0, -4];
         } else if (zoom <= 16) {
           // Compact — 14px circle with sequence number in tiny font
-          iconHtml = `<div style="width:14px;height:14px;border-radius:50%;background:${badgeColor};border:1.5px solid white;display:flex;align-items:center;justify-content:center;font-family:monospace;font-weight:700;font-size:7px;color:white;box-shadow:0 1px 4px rgba(0,0,0,0.35);">${stop.type === 'base' ? '◉' : stop.sequence}</div>`;
+          iconHtml = `<div style="position:relative;width:14px;height:14px;border-radius:50%;background:${badgeColor};border:1.5px solid white;display:flex;align-items:center;justify-content:center;font-family:monospace;font-weight:700;font-size:7px;color:white;box-shadow:0 1px 4px rgba(0,0,0,0.35);">${stop.type === 'base' ? '◉' : stop.sequence}${lockBadge}</div>`;
           iconSize = [14, 14]; iconAnchor = [7, 7]; popupAnchor = [0, -8];
         } else {
           // Full — 20px circle, sequence, no neon glow, clean border
-          iconHtml = `<div style="width:20px;height:20px;border-radius:50%;background:${badgeColor};border:2px solid white;display:flex;align-items:center;justify-content:center;font-family:monospace;font-weight:800;font-size:8px;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">${stop.sequence}</div>`;
+          iconHtml = `<div style="position:relative;width:20px;height:20px;border-radius:50%;background:${badgeColor};border:2px solid white;display:flex;align-items:center;justify-content:center;font-family:monospace;font-weight:800;font-size:8px;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">${stop.sequence}${lockBadge}</div>`;
           iconSize = [20, 20]; iconAnchor = [10, 10]; popupAnchor = [0, -12];
         }
 
@@ -396,16 +402,20 @@ export const MapViewer: React.FC<MapViewerProps> = ({
 
         const marker = L.marker([stop.coordinates.lat, stop.coordinates.lng], {
           icon: customIcon,
-          draggable: zoom >= 15, // only draggable when zoomed in enough
+          draggable: zoom >= 15 && !stop.isLocked, // only draggable when zoomed in enough and unlocked
           title: `#${stop.sequence} ${stop.name}`,
         });
 
-        if (onStopDragEnd && zoom >= 15) {
+        if (onStopDragEnd && zoom >= 15 && !stop.isLocked) {
           marker.on('dragend', (e) => {
             const latlng = (e.target as L.Marker).getLatLng();
             onStopDragEnd(stop.id, { lat: latlng.lat, lng: latlng.lng });
           });
         }
+        
+        marker.on('click', () => {
+          if (onStopClick) onStopClick(stop.id);
+        });
 
         const popupContent = `
           <div style="padding:8px;min-width:180px;font-family:sans-serif;font-size:12px;">
@@ -416,7 +426,8 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             </div>
             <p style="font-weight:700;font-size:13px;color:#1e293b;margin:0 0 4px 0;line-height:1.3">${stop.name}</p>
             <p style="font-size:10px;color:#94a3b8;margin:0">${stop.coordinates.lat.toFixed(5)}, ${stop.coordinates.lng.toFixed(5)}</p>
-            ${isDesktopMode && zoom >= 15 ? '<p style="font-size:9px;color:#2563eb;margin:4px 0 0 0">💡 Arrastra para ajustar</p>' : ''}
+            ${(isDesktopMode || mappingMode === 'stops') && zoom >= 15 && !stop.isLocked ? '<p style="font-size:9px;color:#2563eb;margin:4px 0 0 0">💡 Arrastra para ajustar</p>' : ''}
+            ${stop.isLocked ? '<p style="font-size:9px;color:#d97706;margin:4px 0 0 0">🔒 Parada bloqueada</p>' : ''}
           </div>
         `;
 
@@ -431,7 +442,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     map.on('zoomend', buildMarkers);
     return () => { map.off('zoomend', buildMarkers); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stops, isDesktopMode, onStopDragEnd, mapReadyTick]);
+  }, [stops, isDesktopMode, mappingMode, onStopDragEnd, onStopClick, mapReadyTick]);
 
   // Update Live GPS Location Marker & Accuracy Circle
   useEffect(() => {

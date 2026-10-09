@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {parsePlaces,exportPlaces} from '../src/services/places.ts';
+const place={id:'test-place',name:'Escuela de prueba',category:'escuela' as const,aliases:['Prueba'],neighborhood:'Centro',municipality:'Tepic',entrance:'Entrada por el frente',coordinates:{lat:21.5095,lng:-104.8957},status:'pendiente' as const,captureMethod:'gps' as const,accuracy:8,capturedAt:'2026-10-08T12:00:00Z',createdAt:'2026-10-08T12:00:00Z',updatedAt:'2026-10-08T12:00:00Z'};
+const data=exportPlaces([place]);
+assert.deepEqual(data.features[0].geometry.coordinates,[-104.8957,21.5095]);
+assert.deepEqual(parsePlaces(JSON.parse(JSON.stringify(data))),[place]);
+assert.throws(()=>parsePlaces({type:'FeatureCollection',features:[]}));
+assert.throws(()=>parsePlaces(exportPlaces([place,place])));
+assert.throws(()=>parsePlaces(exportPlaces([{...place,coordinates:{lat:120,lng:1}}])));
+assert.throws(()=>parsePlaces(exportPlaces([{...place,captureMethod:'pin'}])));
+assert.throws(()=>parsePlaces(exportPlaces([{...place,name:' '}])));
+assert.throws(()=>parsePlaces(exportPlaces([{...place,category:'__proto__' as never}])));
+assert.throws(()=>parsePlaces(exportPlaces([{...place,accuracy:NaN}])));
+console.log('PASS: GeoJSON round-trip, metadata, coordinate order, invalid files, duplicates, category and GPS validation');

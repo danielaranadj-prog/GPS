@@ -15,8 +15,10 @@ import {
 import type { RouteItem, DirectionType } from '../types';
 
 interface HeaderProps {
-  mappingMode: 'zone' | 'route';
-  onToggleMappingMode: (mode: 'zone' | 'route') => void;
+  placesOpen: boolean;
+  onOpenPlaces: () => void;
+  mappingMode: 'zone' | 'route' | 'stops';
+  onToggleMappingMode: (mode: 'zone' | 'route' | 'stops') => void;
   routes: RouteItem[];
   selectedRoute: RouteItem | null;
   selectedRouteId: string;
@@ -39,6 +41,8 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  placesOpen,
+  onOpenPlaces,
   mappingMode,
   onToggleMappingMode,
   routes,
@@ -63,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     
-    <header className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 px-3 pt-[max(env(safe-area-inset-top),0.75rem)] pb-2.5 z-30 shadow-sm select-none absolute top-0 left-0 right-0">
+    <header className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 px-3 pt-[max(env(safe-area-inset-top),0.75rem)] pb-2.5 z-30 shadow-sm select-none relative shrink-0">
       <div className="max-w-7xl mx-auto flex flex-col items-center justify-between gap-3 relative">
         
         {/* Branding Row */}
@@ -86,7 +90,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Utility Actions */}
-          <div className="flex items-center gap-1.5">
+          {!placesOpen && <div className="flex items-center gap-1.5">
             <button 
               onClick={onToggleDesktopMode} 
               className={`p-2 transition-colors rounded-full border ${isDesktopMode ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 hover:text-blue-600 border-slate-100 dark:border-slate-700'}`}
@@ -97,15 +101,15 @@ export const Header: React.FC<HeaderProps> = ({
             <button onClick={onOpenExportModal} className="p-2 text-slate-400 hover:text-blue-600 transition-colors bg-slate-50 hover:bg-blue-50 rounded-full border border-slate-100">
               <Download className="w-4 h-4" />
             </button>
-          </div>
+          </div>}
         </div>
 
         {/* Top Floating Toggle: Master Mapping Mode */}
-        <div className="flex bg-slate-100 p-1 rounded-full border border-slate-200 w-full sm:w-[320px] mx-auto shadow-inner relative z-10">
+        <div className="flex bg-slate-100 p-1 rounded-full border border-slate-200 w-full sm:w-[460px] mx-auto shadow-inner relative z-10">
           <button
             onClick={() => onToggleMappingMode('zone')}
-            className={`flex-1 py-1.5 px-3 rounded-full text-[13px] font-bold transition-all ${
-              mappingMode === 'zone'
+            className={`flex-1 py-1.5 px-2 rounded-full text-[13px] font-bold transition-all ${
+              !placesOpen && mappingMode === 'zone'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
@@ -114,18 +118,29 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
           <button
             onClick={() => onToggleMappingMode('route')}
-            className={`flex-1 py-1.5 px-3 rounded-full text-[13px] font-bold transition-all ${
-              mappingMode === 'route'
+            className={`flex-1 py-1.5 px-2 rounded-full text-[13px] font-bold transition-all ${
+              !placesOpen && mappingMode === 'route'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             🚌 Por Ruta
           </button>
+          <button
+            onClick={() => onToggleMappingMode('stops')}
+            className={`flex-1 py-1.5 px-2 rounded-full text-[13px] font-bold transition-all ${
+              !placesOpen && mappingMode === 'stops'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            🚏 Paradas
+          </button>
+          <button onClick={onOpenPlaces} aria-pressed={placesOpen} className={`flex-1 py-1.5 px-2 rounded-full text-[13px] font-bold ${placesOpen ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500'}`}>Lugares</button>
         </div>
 
         {/* Central Controls (Only visible in Route Mode) */}
-        {mappingMode === 'route' && (
+        {!placesOpen && mappingMode === 'route' && (
           <div className="w-full flex items-center gap-2 max-w-xl">
             <div className="flex-1 min-w-[150px] relative">
               <select

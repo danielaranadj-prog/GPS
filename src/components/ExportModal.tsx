@@ -18,6 +18,7 @@ interface ExportModalProps {
   onClose: () => void;
   allStops: Stop[];
   allRoutes: RouteItem[];
+  selectedRouteId?: string | null;
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({
@@ -25,19 +26,29 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   onClose,
   allStops,
   allRoutes,
+  selectedRouteId,
 }) => {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'stops' | 'routes'>('stops');
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [exportOnlySelected, setExportOnlySelected] = useState(true);
 
   if (!isOpen) return null;
+
+  const stopsToExport = selectedRouteId && exportOnlySelected
+    ? allStops.filter(s => s.routeIds?.includes(selectedRouteId))
+    : allStops;
+
+  const routesToExport = selectedRouteId && exportOnlySelected
+    ? allRoutes.filter(r => r.id === selectedRouteId)
+    : allRoutes;
 
   // Generate official stops.json format
   const exportStopsData: ExportStopsFile = {
     cityId: "tepic",
     exportDate: new Date().toISOString(),
     version: "2026.1",
-    stops: allStops.map(s => ({
+    stops: stopsToExport.map(s => ({
       id: s.id,
       name: s.name,
       coordinates: {
@@ -56,7 +67,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const routesJsonString = JSON.stringify({
     cityId: "tepic",
     agency: "SEMOVI Nayarit",
-    routes: allRoutes,
+    routes: routesToExport,
   }, null, 2);
 
   const currentJsonString = activeTab === 'stops' ? stopsJsonString : routesJsonString;
@@ -106,7 +117,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     if (activeTab === 'stops') {
       geojson = {
         type: "FeatureCollection",
-        features: allStops.map(s => ({
+        features: stopsToExport.map(s => ({
           type: "Feature",
           properties: { id: s.id, name: s.name, type: s.type, routeIds: s.routeIds },
           geometry: { type: "Point", coordinates: [s.coordinates.lng, s.coordinates.lat] }
@@ -115,7 +126,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     } else {
       geojson = {
         type: "FeatureCollection",
-        features: allRoutes.filter(r => r.ida && r.ida.length > 0).map(r => ({
+        features: routesToExport.filter(r => r.ida && r.ida.length > 0).map(r => ({
           type: "Feature",
           properties: { id: r.id, name: r.name, code: r.code, status: r.status || 'active' },
           geometry: { type: "LineString", coordinates: r.ida.map(p => [p[1], p[0]]) }
@@ -190,7 +201,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              stops.json ({allStops.length})
+              stops.json ({stopsToExport.length})
             </button>
             <button
               onClick={() => setActiveTab('routes')}
@@ -200,16 +211,30 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              routes.json ({allRoutes.length})
+              routes.json ({routesToExport.length})
             </button>
           </div>
 
-          {/* Import option */}
-          <label className="cursor-pointer text-xs text-slate-400 hover:text-blue-300 flex items-center gap-1.5">
-            <Upload className="w-3.5 h-3.5" />
-            <span>Importar JSON</span>
-            <input type="file" accept=".json" onChange={handleFileImport} className="hidden" />
-          </label>
+          <div className="flex items-center gap-4">
+            {selectedRouteId && (
+              <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-300">
+                <input 
+                  type="checkbox" 
+                  checked={exportOnlySelected}
+                  onChange={(e) => setExportOnlySelected(e.target.checked)}
+                  className="rounded border-slate-700 bg-slate-800"
+                />
+                Solo ruta seleccionada
+              </label>
+            )}
+
+            {/* Import option */}
+            <label className="cursor-pointer text-xs text-slate-400 hover:text-blue-300 flex items-center gap-1.5">
+              <Upload className="w-3.5 h-3.5" />
+              <span>Importar JSON</span>
+              <input type="file" accept=".json" onChange={handleFileImport} className="hidden" />
+            </label>
+          </div>
         </div>
 
         {importStatus && (
@@ -228,7 +253,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         {/* Modal Footer with Actions */}
         <div className="p-4 border-t border-slate-800 bg-slate-900/90 flex flex-wrap items-center justify-between gap-3">
           <div className="text-xs text-slate-400">
-            {activeTab === 'stops' ? `${allStops.length} paradas listas para exportar` : `${allRoutes.length} rutas en sistema`}
+            {activeTab === 'stops' ? `${stopsToExport.length} paradas listas para exportar` : `${routesToExport.length} rutas en sistema`}
           </div>
 
           <div className="flex items-center gap-2">

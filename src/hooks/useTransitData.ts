@@ -7,7 +7,7 @@ import { reverseGeocode } from '../services/nominatim';
 
 import * as turf from '@turf/turf';
 
-export function useTransitData(mappingMode: 'zone' | 'route', ) {
+export function useTransitData(mappingMode: 'zone' | 'route' | 'stops') {
   const routes = useLiveQuery(() => db.routes.toArray(), []) || [];
   const [selectedRouteId, setSelectedRouteId] = useState<string>('');
   const [visibleRouteIds, setVisibleRouteIds] = useState<string[]>([]);
@@ -22,7 +22,7 @@ export function useTransitData(mappingMode: 'zone' | 'route', ) {
   // Stops are sorted by their position along the route (orientation-correct).
   const stops = useLiveQuery(
     async () => {
-      if (mappingMode === 'zone') return await db.stops.toArray();
+      if (mappingMode === 'zone' || mappingMode === 'stops') return await db.stops.toArray();
       if (visibleRouteIds.length === 0 || routes.length === 0) return [];
       const allStops = await db.stops.toArray();
       if (allStops.length === 0) return [];

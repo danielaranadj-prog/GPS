@@ -8,6 +8,8 @@ import { MapViewer } from './components/MapViewer';
 import { FieldControls } from './components/FieldControls';
 import { DeviationBanner } from './components/DeviationBanner';
 import { DesktopEditorDrawer } from './components/DesktopEditorDrawer';
+import { StopsManager } from './components/StopsManager';
+import { PlacesWorkspace } from './components/PlacesWorkspace';
 import { ExportModal } from './components/ExportModal';
 import { NewRouteModal } from './components/NewRouteModal';
 import { RouteManagerModal } from './components/RouteManagerModal';
@@ -22,11 +24,15 @@ type HistoryAction =
 
 export function App() {
   const [isDbReady, setIsDbReady] = useState(false);
+  const [placesOpen, setPlacesOpen] = useState(false);
+  const [placesDirty, setPlacesDirty] = useState(false);
+  const [dbError, setDbError] = useState('');
   const [isDesktopMode, setIsDesktopMode] = useState(false);
-  const [mappingMode, setMappingMode] = useState<'zone' | 'route'>('zone');
+  const [mappingMode, setMappingMode] = useState<'zone' | 'route' | 'stops'>('zone');
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [routeModalMode, setRouteModalMode] = useState<'new' | 'variant' | null>(null);
   const [lastMarkedStop, setLastMarkedStop] = useState<Stop | null>(null);
+  const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryAction[]>([]);
   const [centerTrigger, setCenterTrigger] = useState(0);
   const [isDeviationDismissed, setIsDeviationDismissed] = useState(false);
@@ -35,14 +41,7 @@ export function App() {
 
   // Initialize DB and seed default 39 Tepic SEMOVI routes
   useEffect(() => {
-    initializeDatabase().then(async () => {
-      // Limpiar ramales o rutas creadas por error durante las pruebas
-      await db.routes.filter(r => !!r.isCustom).delete();
-      // Eliminar ruta no circular
-      const yerba = await db.routes.filter(r => r.name === 'La Yerba').first();
-      if (yerba) await db.routes.delete(yerba.id);
-      setIsDbReady(true);
-    });
+    initializeDatabase().then(() => setIsDbReady(true)).catch(() => setDbError('No pudimos abrir los datos. Cierra otras pestañas de GPS y vuelve a cargar; no borres los datos del navegador.'));
   }, []);
 
   // Transit Data Hook
@@ -160,6 +159,7 @@ export function App() {
   // Keyboard shortcuts (Cmd+Z)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (placesOpen) return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
         const target = e.target as HTMLElement;
         if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return; // Let browser handle text undo
@@ -169,11 +169,11 @@ export function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleUndoGlobal]);
+  }, [handleUndoGlobal, placesOpen]);
 
   // Desktop Map Click to place stop
   const handleMapClick = useCallback(async (coords: Coordinates) => {
-    if (!isDesktopMode) return;
+    if (!isDesktopMode && mappingMode !== 'stops') return;
     const created = await addStop(coords, 'costumbre', undefined, 1.0);
     if (created) {
       setHistory(prev => [...prev, { type: 'add_stop', stopId: created.id }]);
@@ -232,7 +232,7 @@ export function App() {
     setCenterTrigger(prev => prev + 1);
   }, []);
 
-  if (!isDbReady) { return <div className="h-full w-full bg-slate-50"></div>; }
+  if (!isDbReady) { return <div className="h-full w-full bg-slate-50 p-6" role="status">{dbError || 'Abriendo tus datos…'}</div>; }
 
   return (
     <div className="h-full w-full flex flex-col bg-white text-slate-900 overflow-hidden font-sans relative">
@@ -240,7 +240,9 @@ export function App() {
       {/* Top App Header */}
       <Header
         mappingMode={mappingMode}
-        onToggleMappingMode={setMappingMode}
+        onToggleMappingMode={mode => {if(placesOpen&&placesDirty&&!window.confirm('Hay cambios de un lugar sin guardar. ¿Descartarlos y salir?'))return;setPlacesDirty(false);setPlacesOpen(false);setMappingMode(mode)}}
+        placesOpen={placesOpen}
+        onOpenPlaces={() => setPlacesOpen(true)}
         routes={routes}
         selectedRoute={mappingMode === 'route' ? selectedRoute : null}
         selectedRouteId={selectedRouteId}
@@ -267,6 +269,9 @@ export function App() {
         onCenterGps={handleCenterGps}
       />
 
+      {placesOpen && <PlacesWorkspace onDirtyChange={setPlacesDirty} />}
+      {/* Keep existing editor state, but isolate all place interactions. */}
+      <div className={placesOpen ? 'hidden' : 'flex flex-1 min-h-0 flex-col'}>
       {/* Main Workspace (Map + Drawer) */}
       <div className="flex-1 min-h-0 relative flex flex-col md:flex-row overflow-hidden">
               {isRouteManagerOpen && (
@@ -281,17 +286,18 @@ export function App() {
       )}
         
         
+        {/* Interactive Map */}
+        <div className="flex-1 min-h-0 relative">
           {/* Floating GPS Button */}
           <button
             onClick={handleCenterGps}
-            className="absolute bottom-64 right-4 z-[900] w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-blue-600 border border-slate-100 hover:bg-blue-50 transition-colors"
+            className="absolute top-4 right-4 z-[900] w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-blue-600 border border-slate-100 hover:bg-blue-50 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-crosshair"><circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/></svg>
           </button>
-
-        {/* Interactive Map */}
-        <div className="flex-1 min-h-0 relative">
+          
           <MapViewer
+            mappingMode={mappingMode}
             currentPosition={position}
             selectedRoute={selectedRoute}
             visibleRouteIds={visibleRouteIds}
@@ -307,12 +313,11 @@ export function App() {
             centerTrigger={centerTrigger}
             isEditingRoute={isEditingRoute}
             onRouteTraceEdited={handleRouteTraceEdited}
+            onStopClick={setSelectedStopId}
           />
 
-          
-
           {/* iPhone Ergonomic Field Thumb Bar */}
-          {!isDesktopMode && (
+          {!isDesktopMode && mappingMode !== 'stops' && (
             <FieldControls
               mappingMode={mappingMode}
               currentPosition={position}
@@ -330,8 +335,18 @@ export function App() {
           )}
         </div>
 
+        {/* Dedicated Stops Manager Sidebar */}
+        {mappingMode === 'stops' && (
+          <StopsManager
+            stops={stops}
+            selectedStopId={selectedStopId}
+            onDeleteStop={handleDeleteStop}
+            onUpdateStop={updateStop}
+          />
+        )}
+
         {/* Desktop Mode QA Sidebar */}
-        {isDesktopMode && (
+        {isDesktopMode && mappingMode !== 'stops' && (
           <DesktopEditorDrawer
             isOpen={isDesktopMode}
             onClose={() => setIsDesktopMode(false)}
@@ -354,12 +369,14 @@ export function App() {
       
 
 
+      </div>
       {/* Official Export Modal */}
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         allStops={allStops}
         allRoutes={routes}
+        selectedRouteId={mappingMode === 'route' ? selectedRouteId : null}
       />
 
       {/* New Route / Variant Modal */}

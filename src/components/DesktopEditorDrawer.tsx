@@ -454,8 +454,9 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => onDeleteStop(stop.id)}
-                      className="p-1.5 rounded-lg hover:bg-rose-950/60 text-slate-500 hover:text-rose-400"
+                      onClick={() => !stop.isLocked && onDeleteStop(stop.id)}
+                      disabled={stop.isLocked}
+                      className="p-1.5 rounded-lg text-slate-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-rose-950/60 hover:text-rose-400"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

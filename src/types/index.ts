@@ -1,4 +1,21 @@
 export type StopType = 'oficial' | 'costumbre' | 'base';
+export type PlaceCategory = 'escuela' | 'hospital' | 'mercado' | 'plaza' | 'oficina' | 'parque' | 'terminal' | 'colonia' | 'otro';
+export interface Place {
+  id: string;
+  name: string;
+  category: PlaceCategory;
+  aliases: string[];
+  neighborhood: string;
+  municipality: string;
+  entrance: string;
+  coordinates: Coordinates;
+  status: 'pendiente' | 'verificado';
+  captureMethod: 'pin' | 'gps';
+  accuracy?: number;
+  capturedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 export type DirectionType = 'ida' | 'vuelta';
 export type RouteCategory = 'troncal' | 'alimentadora' | 'suburbana' | 'xalisco' | 'ramal';
 
@@ -17,6 +34,7 @@ export interface Stop {
   sequence: number;
   accuracy?: number; // in meters (e.g. 3.2)
   notes?: string;
+  isLocked?: boolean; // prevent deletion or movement
   createdAt?: string;
 }
 

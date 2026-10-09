@@ -1,14 +1,15 @@
 import Dexie, { type Table } from 'dexie';
-import type { Stop, RouteItem, RecordedTrack } from '../types';
+import type { Stop, RouteItem, RecordedTrack, Place } from '../types';
 import defaultRoutes from '../data/tepicRoutes.json';
 
 export class TransitStudioDatabase extends Dexie {
   stops!: Table<Stop, string>;
   routes!: Table<RouteItem, string>;
   tracks!: Table<RecordedTrack, string>;
+  places!: Table<Place, string>;
 
-  constructor() {
-    super('TepicTransitStudioDB');
+  constructor(name = 'TepicTransitStudioDB') {
+    super(name);
     // Version 1 schema (kept for migration chain)
     this.version(1).stores({
       stops: 'id, type, direction, sequence, *routeIds, createdAt',
@@ -26,15 +27,16 @@ export class TransitStudioDatabase extends Dexie {
       stops: 'id, type, direction, sequence, *routeIds, createdAt',
       routes: 'id, code, category, isCustom',
       tracks: 'id, routeId, direction, startedAt',
-    }); // version 4: non-destructive — initializeDatabase() bulkPut handles re-sync
+    });
+    // Additive migration: existing stores and records are preserved.
+    this.version(6).stores({ places: 'id, name, category, status, updatedAt' });
   }
 }
 
 export const db = new TransitStudioDatabase();
 
-// Initialize and seed default routes — always overwrite so names stay up-to-date
+// Seed only missing defaults; never overwrite field edits or delete custom routes.
 export async function initializeDatabase() {
-  console.log('[DB] Syncing official SEMOVI Tepic routes (bulkPut)...');
   
   // The new JSON has a { "routes": [...] } structure and uses { lat, lng } instead of [lat, lng]
   const rawData: any = defaultRoutes;
@@ -53,8 +55,10 @@ export async function initializeDatabase() {
     notes: r.groupName || ''
   }));
 
-  // bulkPut = insert OR update; keeps custom routes untouched since they have different ids
-  await db.routes.bulkPut(mappedRoutes);
+  await db.transaction('rw', db.routes, async () => {
+    const existing = new Set(await db.routes.toCollection().primaryKeys());
+    await db.routes.bulkAdd(mappedRoutes.filter(route => !existing.has(route.id)));
+  });
 
   // No sample stops — user creates real stops from GPS field work
 }
