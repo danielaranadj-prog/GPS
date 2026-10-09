@@ -37,6 +37,7 @@ export function App() {
   const [centerTrigger, setCenterTrigger] = useState(0);
   const [isDeviationDismissed, setIsDeviationDismissed] = useState(false);
   const [isEditingRoute, setIsEditingRoute] = useState(false);
+  const [traceHistory, setTraceHistory] = useState<[number, number][][]>([]);
   const [isRouteManagerOpen, setIsRouteManagerOpen] = useState(false);
 
   // Initialize DB and seed default 39 Tepic SEMOVI routes
@@ -74,7 +75,30 @@ export function App() {
     return direction === 'ida' ? selectedRoute.ida : selectedRoute.vuelta;
   }, [selectedRoute, direction]);
 
+  
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        if (!selectedRoute || traceHistory.length === 0) return;
+        e.preventDefault();
+        const previousCoords = traceHistory[traceHistory.length - 1];
+        setTraceHistory(prev => prev.slice(0, -1));
+        const updated = {
+          ...selectedRoute,
+          ida: previousCoords,
+          vuelta: [...previousCoords].reverse()
+        };
+        await db.routes.put(updated);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedRoute, traceHistory]);
+  
   const handleRouteTraceEdited = useCallback(async (newCoords: [number, number][]) => {
+    if (selectedRoute) {
+      setTraceHistory(prev => [...prev, selectedRoute.ida]);
+    }
     if (!selectedRoute) return;
     const updated = {
       ...selectedRoute,
@@ -267,6 +291,7 @@ export function App() {
         onOpenNewRouteModal={() => setRouteModalMode('new')}
         onOpenExportModal={() => setIsExportModalOpen(true)}
         onCenterGps={handleCenterGps}
+        onClearRoutes={() => setVisibleRouteIds([])}
       />
 
       {placesOpen && <PlacesWorkspace onDirtyChange={setPlacesDirty} />}

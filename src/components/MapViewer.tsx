@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import '@geoman-io/leaflet-geoman-free';
+import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
 import type { Stop, RouteItem, DirectionType, GpsBreadcrumb, Coordinates } from '../types';
 
 interface MapViewerProps {
@@ -169,11 +171,10 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       subdomains = 'abc';
       maxZoom = 19;
     } else if (basemap === 'dark') {
-      url = 'https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png';
-      subdomains = 'abcd';
-      maxZoom = 20;
+      url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+      subdomains = 'abc';
+      maxZoom = 19;
     } else if (basemap === 'carto-light') {
-      // Using standard OSM but we'll apply a CSS filter to make it look clean/light
       url = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
       subdomains = 'abc';
       maxZoom = 19;
@@ -182,7 +183,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     const newLayer = L.tileLayer(url, {
       subdomains,
       maxZoom,
-      className: basemap === 'carto-light' ? 'map-tiles-clean' : ''
+      className: basemap === 'carto-light' ? 'grayscale opacity-80 brightness-110 contrast-75' : (basemap === 'dark' ? 'invert grayscale brightness-75 contrast-125' : '')
     }).addTo(mapInstanceRef.current);
 
     tileLayerRef.current = newLayer;
@@ -194,7 +195,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     if (!map) return;
 
     const clickHandler = (e: L.LeafletMouseEvent) => {
-      if ((isDesktopMode || mappingMode === 'stops') && onMapClick) {
+      if (!isEditingRoute && (isDesktopMode || mappingMode === 'stops') && onMapClick) {
         onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
       }
     };
@@ -265,10 +266,11 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       visibleRoutesGroupRef.current?.addLayer(line);
 
       // Only enable editing if ONE route is selected and we are in edit mode
-      if (isEditingRoute && visibleRouteIds.length === 1 && route.id === selectedRoute?.id && (L as any).pm) {
+      if (isEditingRoute && visibleRouteIds.length === 1 && route.id === selectedRoute?.id) {
         (line as any).pm.enable({
           allowSelfIntersection: true,
           preventMarkerRemoval: false,
+          snappable: false,
         });
 
         const handleEdit = () => {
@@ -284,22 +286,10 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       }
 
       // Terminus badges only for the active selected route
-      if (route.id === selectedRoute?.id && terminusGroupRef.current) {
-        const startPt = pathCoords[0];
-        const endPt = pathCoords[pathCoords.length - 1];
-
-        L.marker(startPt, {
-          icon: L.divIcon({ className: 'custom-terminus-icon', html: '🚩', iconSize: [24, 24] })
-        }).addTo(terminusGroupRef.current);
-
-        L.marker(endPt, {
-          icon: L.divIcon({ className: 'custom-terminus-icon', html: '🏁', iconSize: [24, 24] })
-        }).addTo(terminusGroupRef.current);
-      }
-    });
+          });
 
     try {
-      if (allCoords.length > 0 && mapReadyTick > 0) {
+      if (allCoords.length > 0 && mapReadyTick > 0 && !isEditingRoute) {
         map.fitBounds(allCoords, { padding: [50, 50], animate: true, duration: 1 });
       }
     } catch (e) {
@@ -354,6 +344,11 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     const map = mapInstanceRef.current;
     const stopsGroup = stopsLayerGroupRef.current;
     if (!map || !stopsGroup || !mapReadyRef.current) return;
+    
+    if (isEditingRoute) {
+      stopsGroup.clearLayers();
+      return;
+    }
 
     const buildMarkers = () => {
       stopsGroup.clearLayers();
@@ -442,7 +437,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     map.on('zoomend', buildMarkers);
     return () => { map.off('zoomend', buildMarkers); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stops, isDesktopMode, mappingMode, onStopDragEnd, onStopClick, mapReadyTick]);
+  }, [stops, isDesktopMode, mappingMode, onStopDragEnd, onStopClick, mapReadyTick, isEditingRoute]);
 
   // Update Live GPS Location Marker & Accuracy Circle
   useEffect(() => {

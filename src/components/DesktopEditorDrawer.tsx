@@ -355,6 +355,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
       </div>
 
       {/* Stops Sequential List */}
+      {!isEditingRoute && (
       <div className="flex-1 overflow-y-auto p-3 pb-safe space-y-2">
         <div className="flex items-center justify-between text-xs font-semibold text-slate-500 px-1">
           <span className="text-base font-bold text-slate-800 dark:text-slate-100">Paradas Registradas ({stops.length})</span>
@@ -467,6 +468,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
         )}
       </div>
 
+      )}
       {/* Footer tip */}
       <div className="p-3 pb-safe border-t border-slate-200 bg-slate-50 text-[11px] text-slate-500 flex items-center gap-2">
         <Info className="w-4 h-4 text-blue-400 shrink-0" />

@@ -38,6 +38,7 @@ interface HeaderProps {
   onOpenNewRouteModal: () => void;
   onOpenExportModal: () => void;
   onCenterGps: () => void;
+  onClearRoutes: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -64,6 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenNewRouteModal,
   onOpenExportModal,
   onCenterGps,
+  onClearRoutes,
 }) => {
   return (
     
@@ -164,7 +166,8 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             
-          </div>
+            <button onClick={onClearRoutes} className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-xl px-3 py-2 text-sm font-bold shadow-sm whitespace-nowrap transition-colors">Limpiar</button>
+            </div>
         )}
       </div>
     </header>
