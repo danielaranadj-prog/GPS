@@ -287,7 +287,7 @@ export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
             : 'Graba o simula un recorrido para comparar el trazo de calle contra SEMOVI.'}
         </p>
 
-        <div className="grid grid-cols-3 gap-2 mb-2">
+        <div className="grid grid-cols-2 gap-2 mb-2">
           <button
             onClick={onToggleEditingRoute}
             className={`px-2.5 py-2 rounded-xl border font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all ${

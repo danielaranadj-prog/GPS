@@ -62,6 +62,8 @@ export function App() {
     deleteStop,
     reorderStop,
     acceptRecordedTrackAsOfficial,
+    reverseOfficialTrack,
+    cleanOfficialTrack,
     saveAsVariant,
     createCustomRoute,
   } = useTransitData(mappingMode);
@@ -387,6 +389,8 @@ export function App() {
             onLoadTrack={loadTrack}
             isEditingRoute={isEditingRoute}
             onToggleEditingRoute={() => setIsEditingRoute(!isEditingRoute)}
+            onReverseTrace={reverseOfficialTrack}
+            onCleanTrace={cleanOfficialTrack}
           />
         )}
       </div>

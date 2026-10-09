@@ -221,6 +221,31 @@ export const MapViewer: React.FC<MapViewerProps> = ({
 
     const visibleRoutes = routes.filter(r => visibleRouteIds.includes(r.id));
     
+    // Draw start and end markers for the active route
+    if (selectedRoute?.id && terminusGroupRef.current) {
+      const active = routes.find(r => r.id === selectedRoute.id);
+      if (active && active.ida && active.ida.length >= 2) {
+        const start = active.ida[0];
+        const end = active.ida[active.ida.length - 1];
+        
+        const startIcon = L.divIcon({
+          className: "custom-div-icon",
+          html: "<div style=\"background-color:#10b981;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.5);\"></div>",
+          iconSize: [12, 12],
+          iconAnchor: [6, 6]
+        });
+        const endIcon = L.divIcon({
+          className: "custom-div-icon",
+          html: "<div style=\"background-color:#ef4444;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.5);\"></div>",
+          iconSize: [12, 12],
+          iconAnchor: [6, 6]
+        });
+        
+        L.marker(start, { icon: startIcon, interactive: false, title: "Inicio (Verde)" }).addTo(terminusGroupRef.current);
+        L.marker(end, { icon: endIcon, interactive: false, title: "Fin (Rojo)" }).addTo(terminusGroupRef.current);
+      }
+    }
+    
     // Bounds for all visible routes
     let allCoords: [number, number][] = [];
 

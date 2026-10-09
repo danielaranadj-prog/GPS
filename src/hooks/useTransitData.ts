@@ -187,6 +187,31 @@ export function useTransitData(mappingMode: 'zone' | 'route' | 'stops') {
   }, [stops]);
 
   // Aceptar trazo 2026: replaces official geometry with recorded track
+  const cleanOfficialTrack = useCallback(async () => {
+    if (!selectedRoute || !selectedRoute[direction] || selectedRoute[direction].length < 2) return;
+    const cleaned = selectedRoute[direction].filter((c, i, arr) => {
+      if (i === 0) return true;
+      const prev = arr[i - 1];
+      return Math.abs(c[0] - prev[0]) > 0.00001 || Math.abs(c[1] - prev[1]) > 0.00001;
+    });
+    const updated = {
+      ...selectedRoute,
+      [direction]: cleaned,
+    };
+    await db.routes.put(updated);
+    feedbackService.playSuccess();
+  }, [selectedRoute, direction]);
+
+  const reverseOfficialTrack = useCallback(async () => {
+    if (!selectedRoute || !selectedRoute[direction] || selectedRoute[direction].length < 2) return;
+    const updated = {
+      ...selectedRoute,
+      [direction]: [...selectedRoute[direction]].reverse(),
+    };
+    await db.routes.put(updated);
+    feedbackService.playSuccess();
+  }, [selectedRoute, direction]);
+
   const acceptRecordedTrackAsOfficial = useCallback(async (newCoords: [number, number][]) => {
     if (!selectedRoute || newCoords.length < 2) return;
 
@@ -253,6 +278,8 @@ export function useTransitData(mappingMode: 'zone' | 'route' | 'stops') {
     deleteStop,
     reorderStop,
     acceptRecordedTrackAsOfficial,
+    reverseOfficialTrack,
+    cleanOfficialTrack,
     saveAsVariant,
     createCustomRoute,
   };
