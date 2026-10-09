@@ -33,6 +33,8 @@ interface DesktopEditorDrawerProps {
   onLoadTrack?: (points: GpsBreadcrumb[]) => void;
   isEditingRoute?: boolean;
   onToggleEditingRoute?: () => void;
+  onReverseTrace?: () => void;
+  onCleanTrace?: () => void;
 }
 
 export const DesktopEditorDrawer: React.FC<DesktopEditorDrawerProps> = ({
