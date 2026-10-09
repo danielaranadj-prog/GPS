@@ -64,10 +64,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   };
 
   const stopsJsonString = JSON.stringify(exportStopsData, null, 2);
+  const formattedRoutes = routesToExport.map(r => ({
+    id: r.id,
+    name: r.name,
+    color: r.color,
+    groupName: r.notes || 'Rutas Tepic',
+    coordinates: r.ida ? r.ida.map(pt => ({ lat: pt[0], lng: pt[1] })) : []
+  }));
+
   const routesJsonString = JSON.stringify({
-    cityId: "tepic",
-    agency: "SEMOVI Nayarit",
-    routes: routesToExport,
+    routes: formattedRoutes
   }, null, 2);
 
   const currentJsonString = activeTab === 'stops' ? stopsJsonString : routesJsonString;
