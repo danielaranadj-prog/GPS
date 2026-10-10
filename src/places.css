@@ -22,3 +22,5 @@
 .place-draft-pin{background:none;border:0}.place-draft-pin span{display:block;width:28px;height:28px;background:#2163da;border:3px solid white;transform:rotate(-45deg);border-radius:50% 50% 50% 0;box-shadow:0 2px 8px #0006}
 @media(max-width:700px){.places-workspace{flex-direction:column}.places-map-area{flex:none;height:38%;min-height:180px}.places-panel{width:100%;flex:1;min-height:0;padding:14px;border-left:0;border-top:1px solid #dce3ec}}
 @media(prefers-color-scheme:dark){.places-panel,.places-workspace{background:#141e2b;color:#f0f5fc}.places-panel p,.places-panel small{color:#b0bfd2}.places-panel button,.places-import,.places-panel input:not([type=checkbox]),.places-panel select,.places-panel textarea,.places-list>button{background:#202d3f;color:#f0f5fc;border-color:#42526a}.places-notice,.places-import-preview,.places-list>button[aria-pressed=true]{background:#1c3558;color:#dceaff}.places-map-hint{background:#162337ee;color:#f0f5fc;border-color:#42526a}}
+.places-advanced summary { cursor: pointer; font-weight: 600; color: #2163da; padding: 6px 0; user-select: none; font-size: 13px; }
+.places-advanced summary:hover { text-decoration: underline; }

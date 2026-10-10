@@ -1,5 +1,5 @@
 export type StopType = 'oficial' | 'costumbre' | 'base';
-export type PlaceCategory = 'escuela' | 'hospital' | 'mercado' | 'plaza' | 'oficina' | 'parque' | 'terminal' | 'colonia' | 'otro';
+export type PlaceCategory = 'escuela' | 'hospital' | 'mercado' | 'plaza' | 'oficina' | 'gobierno' | 'parque' | 'deporte' | 'estadio' | 'museo' | 'teatro' | 'monumento' | 'cementerio' | 'religion' | 'restaurante' | 'cafe' | 'agencia' | 'bar' | 'hotel' | 'gimnasio' | 'cine' | 'terminal' | 'colonia' | 'otro';
 export interface Place {
   id: string;
   name: string;

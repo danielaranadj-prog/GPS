@@ -1,8 +1,13 @@
 import type { Place, PlaceCategory } from '../types';
 
 export const placeCategories: Record<PlaceCategory, string> = {
-  escuela: 'Escuela', hospital: 'Hospital / salud', mercado: 'Mercado', plaza: 'Plaza / comercio',
-  oficina: 'Oficina / trámites', parque: 'Parque', terminal: 'Terminal', colonia: 'Colonia', otro: 'Otro',
+  gobierno: 'Gobierno', escuela: 'Escuela', hospital: 'Hospital / salud', mercado: 'Mercado', plaza: 'Plaza / comercio',
+  oficina: 'Oficina / trámites', parque: 'Parque', deporte: 'Espacio deportivo', estadio: 'Estadio',
+  museo: 'Museo', teatro: 'Teatro', monumento: 'Monumento histórico', 
+  cementerio: 'Panteón / Cementerio', religion: 'Iglesia / Templo', restaurante: 'Restaurante', cafe: 'Cafetería',
+  agencia: 'Agencia automotriz', bar: 'Bar / Centro nocturno', hotel: 'Hotel / Alojamiento',
+  gimnasio: 'Gimnasio / Deportivo', cine: 'Cine / Entretenimiento',
+  terminal: 'Terminal', colonia: 'Colonia', otro: 'Otro',
 };
 export const normalizePlace = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 export function exportPlaces(places: Place[]) {
@@ -48,7 +53,23 @@ export function parsePlaces(input: unknown): Place[] {
       if (ids.has(id)) throw Error('Identificador repetido en el archivo.');
       if (f.id !== undefined && f.id !== id) throw Error('El identificador del punto no coincide.');
       ids.add(id);
-      const category = text(p.category, 'category', true) as PlaceCategory;
+      const rawCategory = text(p.category, 'category', true).toLowerCase();
+      const aliases: Record<string, PlaceCategory> = {
+        museos: 'museo', teatros: 'teatro', estadios: 'estadio',
+        'espacio deportivo': 'deporte', 'espacios deportivos': 'deporte', espacio_deportivo: 'deporte', espacios_deportivos: 'deporte', deportes: 'deporte',
+        'monumento historico': 'monumento', 'monumento histórico': 'monumento', 'monumentos historicos': 'monumento', 'monumentos históricos': 'monumento',
+        monumento_historico: 'monumento', monumentos_historicos: 'monumento', monumentos: 'monumento',
+        cementerios: 'cementerio', panteon: 'cementerio', panteones: 'cementerio',
+        'sitios religiosos': 'religion', 'sitio religioso': 'religion', iglesia: 'religion', iglesias: 'religion', templo: 'religion', templos: 'religion',
+        restaurantes: 'restaurante',
+        cafes: 'cafe', cafeteria: 'cafe', cafeterias: 'cafe',
+        'agencias de autos': 'agencia', 'agencia de autos': 'agencia', automotriz: 'agencia',
+        bares: 'bar', antro: 'bar', antros: 'bar', cantina: 'bar',
+        hoteles: 'hotel', motel: 'hotel', moteles: 'hotel',
+        gimnasios: 'gimnasio', gym: 'gimnasio',
+        cines: 'cine', cinema: 'cine'
+      };
+      const category = (aliases[rawCategory] || rawCategory) as PlaceCategory;
       if (!Object.prototype.hasOwnProperty.call(placeCategories, category)) throw Error('Categoría desconocida.');
       if (p.status !== 'pendiente' && p.status !== 'verificado') throw Error('Estado de revisión inválido.');
       if (p.captureMethod !== 'gps' && p.captureMethod !== 'pin') throw Error('Método de captura inválido.');

@@ -29,9 +29,74 @@ export function PlacesWorkspace({onDirtyChange}:{onDirtyChange:(dirty:boolean)=>
     map.current?.setView([place.coordinates.lat,place.coordinates.lng],17);
   }
   chooseRef.current = choose;
+  
+  async function fetchPlaceInfo(lat: number, lng: number, currentDraft: Draft) {
+    try {
+      setNotice('Obteniendo información del lugar...');
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat=${lat}&lon=${lng}`, {
+        headers: { 'Accept-Language': 'es', 'User-Agent': 'TepicTransitStudio/1.0' }
+      });
+      const data = await res.json();
+      if (!data || data.error) { setNotice('Toca el mapa para marcar la entrada del lugar.'); return; }
+      
+      const addr = data.address || {};
+      const neighborhood = addr.neighbourhood || addr.quarter || addr.suburb || '';
+      const municipality = addr.city || addr.town || addr.municipality || addr.county || 'Tepic';
+      const road = addr.road || '';
+      
+      let name = '';
+      let catKey = '';
+      if (data.name && data.addresstype !== 'road' && data.addresstype !== 'neighbourhood') {
+        name = data.name;
+        const type = data.type || '', cat = data.category || '';
+        if (cat === 'shop' || cat === 'commercial') catKey = 'plaza';
+        if (type.includes('school') || type.includes('college') || type.includes('university') || cat === 'education') catKey = 'escuela';
+        if (type.includes('hospital') || type.includes('clinic') || type.includes('doctors')) catKey = 'hospital';
+        if (type.includes('restaurant') || type.includes('fast_food') || type.includes('food')) catKey = 'restaurante';
+        if (type.includes('cafe')) catKey = 'cafe';
+        if (type.includes('bar') || type.includes('pub') || type.includes('nightclub')) catKey = 'bar';
+        if (type.includes('hotel') || type.includes('motel') || type.includes('hostel')) catKey = 'hotel';
+        if (type.includes('park')) catKey = 'parque';
+        if (type.includes('place_of_worship')) catKey = 'religion';
+        if (type.includes('stadium')) catKey = 'estadio';
+        if (type.includes('sports') || type.includes('pitch')) catKey = 'deporte';
+        if (type.includes('museum')) catKey = 'museo';
+        if (type.includes('theatre')) catKey = 'teatro';
+        if (type.includes('monument') || cat === 'historic') catKey = 'monumento';
+        if (type.includes('cemetery') || type.includes('grave')) catKey = 'cementerio';
+        if (cat === 'government' || type.includes('townhall')) catKey = 'gobierno';
+        if (type.includes('bus_station')) catKey = 'terminal';
+        if (type.includes('cinema')) catKey = 'cine';
+        if (type.includes('gym') || type.includes('fitness')) catKey = 'gimnasio';
+      }
+      
+      setDraft(d => {
+        // Only override if the user hasn't explicitly typed something else
+        if (d.coordinates?.lat !== lat || d.coordinates?.lng !== lng) return d;
+        return {
+          ...d,
+          name: d.name || name,
+          category: (d.category === 'otro' && catKey) ? (catKey as PlaceCategory) : d.category,
+          neighborhood: d.neighborhood || neighborhood,
+          municipality: (d.municipality === 'Tepic' && municipality) ? municipality : d.municipality,
+          entrance: d.entrance || (road ? `Por ${road}` : '')
+        };
+      });
+      setNotice(name ? `¡Encontrado! ${name}` : 'Dirección autocompletada. Ingresa el nombre del lugar.');
+    } catch (e) {
+      setNotice('Error de red al buscar información del lugar.');
+    }
+  }
+
   function position(point: Coordinates) {
     gpsRequest.current++;setGpsBusy(false);
-    change({coordinates:point,captureMethod:'pin',accuracy:undefined,capturedAt:new Date().toISOString(),status:'pendiente'});
+    const update = {coordinates:point,captureMethod:'pin' as const,accuracy:undefined,capturedAt:new Date().toISOString(),status:'pendiente' as const};
+    setDraft(d => {
+      const next = {...d, ...update};
+      void fetchPlaceInfo(point.lat, point.lng, next);
+      return next;
+    });
+    setDirty(true);
   }
   const positionRef = useRef(position);positionRef.current = position;
   useEffect(() => {
@@ -137,23 +202,40 @@ export function PlacesWorkspace({onDirtyChange}:{onDirtyChange:(dirty:boolean)=>
   return <section className="places-workspace" aria-label="Editor de lugares">
     <div className="places-map-area"><div ref={node} className="places-map" aria-label="Mapa para colocar lugares"/><div className="places-map-hint">Toca el mapa y arrastra el pin hasta la entrada</div><div className="places-basemap" aria-label="Mapa de referencia"><button type="button" aria-pressed={basemap==='google'} onClick={()=>setBasemap('google')}>Google</button><button type="button" aria-pressed={basemap==='osm'} onClick={()=>setBasemap('osm')}>OpenStreetMap</button></div></div>
     <aside className="places-panel">
-      <header><div><h2>Lugares</h2><p>Destinos para PorDóndePasa · {places.length} guardados</p></div><button type="button" onClick={newPlace}>+ Nuevo</button></header>
+      <header><div><h2>Lugares</h2><p>Destinos para PorDóndePasa · {places.length} guardados</p></div><button type="button" onClick={newPlace} style={{ background: '#2163da', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '12px' }}>+ Nuevo</button></header>
       <p className="places-local">Guardado local: este navegador. Exporta un respaldo para cambiar de dispositivo.</p>
       <div className="places-actions"><button onClick={download} disabled={!places.length}>Exportar GeoJSON</button><label className="places-import">Importar GeoJSON<input aria-label="Importar GeoJSON de lugares" type="file" accept=".geojson,.json,application/geo+json,application/json" onChange={event=>{void readFile(event.target.files?.[0]);event.target.value=''}}/></label></div>
       {notice&&<p className="places-notice" role="status">{notice}</p>}
       {incoming&&<section className="places-import-preview"><strong>{incoming.length} lugares: {incoming.length-matches} nuevos y {matches} con ID existente.</strong><label><input type="checkbox" checked={replaceExisting} onChange={e=>setReplaceExisting(e.target.checked)}/> Actualizar los {matches} existentes con el archivo</label><p>Por defecto se conservan los existentes. IDs diferentes no se fusionan, aunque tengan el mismo nombre.</p><button disabled={busy} onClick={()=>void importFile()}>Confirmar importación</button><button onClick={()=>setIncoming(null)}>Cancelar</button></section>}
       <form onSubmit={save} className="places-form">
-        <h3>{editing?'Editar lugar':'Nuevo lugar'}{dirty?' · Sin guardar':''}</h3>
-        <label>Nombre *<input required maxLength={180} value={draft.name} onChange={e=>change({name:e.target.value})} placeholder="Nombre del lugar"/></label>
-        <div className="places-fields"><label>Tipo *<select value={draft.category} onChange={e=>change({category:e.target.value as PlaceCategory})}>{Object.entries(placeCategories).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label><label>Municipio<input value={draft.municipality} maxLength={180} onChange={e=>change({municipality:e.target.value})} list="place-municipalities"/><datalist id="place-municipalities"><option value="Tepic"/><option value="Xalisco"/></datalist></label></div>
-        <label>También lo conocen como<input value={draft.aliases.join(',')} maxLength={600} onChange={e=>change({aliases:e.target.value.split(',')})} placeholder="Nombres separados por coma"/></label>
-        <label>Colonia<input value={draft.neighborhood} maxLength={180} onChange={e=>change({neighborhood:e.target.value})}/></label>
-        <label>Entrada o referencia<textarea value={draft.entrance} maxLength={1000} rows={2} onChange={e=>change({entrance:e.target.value})} placeholder="Entrada principal por…"/></label>
-        <div className="places-position"><button type="button" onClick={locate} disabled={gpsBusy}>{gpsBusy?'Buscando GPS…':'Usar mi ubicación GPS'}</button><small>{draft.coordinates?`${draft.coordinates.lat.toFixed(6)}, ${draft.coordinates.lng.toFixed(6)} · ${draft.captureMethod==='gps'?`GPS ±${Math.round(draft.accuracy??0)} m`:'Pin manual'}`:'Sin posición. Toca el mapa o usa el GPS.'}</small></div>
-        <label>Revisión<select value={draft.status} onChange={e=>change({status:e.target.value as Place['status']})}><option value="pendiente">Pendiente de verificar</option><option value="verificado">Verificado por mí</option></select></label>
-        <button className="places-save" disabled={busy||gpsBusy||!draft.coordinates||!draft.name.trim()} type="submit">{busy?'Guardando…':editing?'Guardar cambios':'Guardar lugar'}</button>
+        <h3 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>{editing?'Editar lugar':'Nuevo lugar'}</span>
+          {dirty && <span style={{ fontSize: '11px', color: '#eab308', background: '#fef08a', padding: '3px 8px', borderRadius: '12px' }}>Sin guardar</span>}
+        </h3>
+        <label>Nombre del lugar *<input required maxLength={180} value={draft.name} onChange={e=>change({name:e.target.value})} placeholder="Ej. Plaza Fórum, Clínica 1..."/></label>
+        <div className="places-fields"><label>Tipo *<select value={draft.category} onChange={e=>change({category:e.target.value as PlaceCategory})}>{Object.entries(placeCategories).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label><label>Colonia<input value={draft.neighborhood} maxLength={180} onChange={e=>change({neighborhood:e.target.value})} placeholder="Colonia"/></label></div>
+        <details className="places-advanced">
+          <summary>Más detalles opcionales</summary>
+          <div style={{ display: 'grid', gap: '10px', marginTop: '10px' }}>
+            <label>Entrada o referencia<textarea value={draft.entrance} maxLength={1000} rows={2} onChange={e=>change({entrance:e.target.value})} placeholder="Ej. Entrada principal por Av. Insurgentes..."/></label>
+            <div className="places-fields">
+              <label>Municipio<input value={draft.municipality} maxLength={180} onChange={e=>change({municipality:e.target.value})} list="place-municipalities"/><datalist id="place-municipalities"><option value="Tepic"/><option value="Xalisco"/></datalist></label>
+              <label>Revisión<select value={draft.status} onChange={e=>change({status:e.target.value as Place['status']})}><option value="pendiente">⏳ Pendiente</option><option value="verificado">✅ Verificado</option></select></label>
+            </div>
+            <label>También conocido como<input value={draft.aliases.join(',')} maxLength={600} onChange={e=>change({aliases:e.target.value.split(',')})} placeholder="Nombres separados por coma"/></label>
+          </div>
+        </details>
+        <div className="places-position">
+           <button type="button" onClick={locate} disabled={gpsBusy} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+             📍 {gpsBusy?'Buscando GPS…':'Usar mi ubicación GPS'}
+           </button>
+           <small>{draft.coordinates?`Coordenadas: ${draft.coordinates.lat.toFixed(6)}, ${draft.coordinates.lng.toFixed(6)} · ${draft.captureMethod==='gps'?`GPS ±${Math.round(draft.accuracy??0)} m`:'Pin manual'}`:'⚠️ Sin posición. Toca el mapa o usa el GPS.'}</small>
+        </div>
+        <button className="places-save" disabled={busy||gpsBusy||!draft.coordinates||!draft.name.trim()} type="submit" style={{ padding: '12px', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          {busy?'Guardando…':editing?'💾 Guardar cambios':'💾 Guardar nuevo lugar'}
+        </button>
       </form>
-      <section className="places-list" aria-label="Lugares guardados"><h3>Tu catálogo</h3><input aria-label="Buscar lugares guardados" placeholder="Buscar por nombre o colonia" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Filtrar lugares por tipo" value={category} onChange={e=>setCategory(e.target.value)}><option value="">Todos los tipos</option>{Object.entries(placeCategories).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select>{visible.length?visible.map(place=><button key={place.id} onClick={()=>choose(place)} aria-pressed={draft.id===place.id}><strong>{place.name}</strong><small>{placeCategories[place.category]} · {place.neighborhood||place.municipality} · {place.status==='verificado'?'Verificado':'Pendiente'}</small></button>):<p>No hay lugares que mostrar.</p>}</section>
+      <section className="places-list" aria-label="Lugares guardados"><h3>Tu catálogo</h3><input aria-label="Buscar lugares guardados" placeholder="Buscar por nombre o colonia" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Filtrar lugares por tipo" value={category} onChange={e=>setCategory(e.target.value)}><option value="">Todos los tipos</option>{Object.entries(placeCategories).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select>{visible.length?visible.map(place=><button key={place.id} onClick={()=>choose(place)} aria-pressed={draft.id===place.id}><strong>{place.name}</strong><small>{placeCategories[place.category] || place.category} · {place.neighborhood||place.municipality} · {place.status==='verificado'?'Verificado':'Pendiente'}</small></button>):<p>No hay lugares que mostrar.</p>}</section>
     </aside>
   </section>;
 }
