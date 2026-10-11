@@ -100,7 +100,7 @@ export interface ExportStopsFile {
   }[];
 }
 
-export type AdType = 'banner' | 'pin';
+export type AdType = 'banner' | 'pin' | 'landmark' | 'adsense';
 
 export interface Client {
   id: string;
@@ -113,14 +113,16 @@ export interface Client {
 
 export interface AdCampaign {
   id: string;
-  clientId: string; // <-- New field
+  clientId: string;
   type: AdType;
   title: string;
   description: string;
   icon: string; // Emoji, URL
+  referenceText?: string; // e.g. 'frente a Café de Olla' (used for invisible landmark ads)
+  promoText?: string; // e.g. 'Desayunos desde $89 al descender'
   routeIds: string[]; // which routes this ad applies to, or empty for all
-  coordinates?: Coordinates; // used if type is 'pin'
-  radiusMeters?: number; // threshold to trigger
+  coordinates?: Coordinates; // used if type is 'pin' or 'landmark'
+  radiusMeters?: number; // threshold to trigger (e.g. 350m)
   callToAction?: string; // e.g. 'Llevarme ahí', 'Obtener Promo'
   isActive: boolean;
   startDate?: string;

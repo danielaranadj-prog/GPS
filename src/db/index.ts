@@ -77,5 +77,66 @@ export async function initializeDatabase() {
     }
   });
 
+  // Seed default sample clients and ads if not already present
+  const adsCount = await db.ads.count();
+  if (adsCount === 0) {
+    const defaultClients: Client[] = [
+      { id: 'client-cafe-de-olla', name: 'Café de Olla', contactEmail: 'contacto@cafedeolla.mx', createdAt: new Date().toISOString() },
+      { id: 'client-burger-lab', name: 'Burger Lab', contactEmail: 'hola@burgerlab.mx', createdAt: new Date().toISOString() },
+      { id: 'client-farmacia', name: 'Farmacia Popular', contactEmail: 'farmacia@uan.mx', createdAt: new Date().toISOString() }
+    ];
+    await db.clients.bulkAdd(defaultClients);
+
+    const defaultAds: AdCampaign[] = [
+      {
+        id: 'ad-cafe-de-olla-centro',
+        clientId: 'client-cafe-de-olla',
+        type: 'landmark',
+        title: 'Café de Olla Centro',
+        description: 'Café tradicional de olla y desayunos a unos pasos de la Catedral.',
+        icon: '☕',
+        referenceText: 'frente a Café de Olla (casi esquina Libertad)',
+        promoText: '15% desc. en barra mostrando tu trayecto',
+        coordinates: { lat: 21.51205, lng: -104.89152 },
+        radiusMeters: 350,
+        callToAction: 'Ver cupón',
+        isActive: true,
+        routeIds: [],
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'ad-burger-lab-forum',
+        clientId: 'client-burger-lab',
+        type: 'landmark',
+        title: 'Burger Lab Forum',
+        description: 'Hamburguesas artesanales y malteadas sobre el boulevard de acceso.',
+        icon: '🍔',
+        referenceText: 'a pasos de Burger Lab Forum',
+        promoText: 'Combo Viajero 2x1 al descender',
+        coordinates: { lat: 21.49179, lng: -104.86640 },
+        radiusMeters: 350,
+        callToAction: 'Aprovechar 2x1',
+        isActive: true,
+        routeIds: [],
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'ad-pin-forum',
+        clientId: 'client-burger-lab',
+        type: 'pin',
+        title: 'Burger Lab (Pin Dorado)',
+        description: 'Marcador dorado destacado sobre las rutas de Forum.',
+        icon: '⭐',
+        coordinates: { lat: 21.49179, lng: -104.86640 },
+        radiusMeters: 400,
+        callToAction: 'Cómo llegar',
+        isActive: true,
+        routeIds: [],
+        createdAt: new Date().toISOString()
+      }
+    ];
+    await db.ads.bulkAdd(defaultAds);
+  }
+
   // No sample stops — user creates real stops from GPS field work
 }
