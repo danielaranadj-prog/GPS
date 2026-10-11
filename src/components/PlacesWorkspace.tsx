@@ -68,6 +68,7 @@ export function PlacesWorkspace({onDirtyChange}:{onDirtyChange:(dirty:boolean)=>
         if (type.includes('bus_station')) catKey = 'terminal';
         if (type.includes('cinema')) catKey = 'cine';
         if (type.includes('gym') || type.includes('fitness')) catKey = 'gimnasio';
+        if (type.includes('bank') || type.includes('atm')) catKey = 'banco';
       }
       
       setDraft(d => {

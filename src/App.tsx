@@ -10,6 +10,7 @@ import { DeviationBanner } from './components/DeviationBanner';
 import { DesktopEditorDrawer } from './components/DesktopEditorDrawer';
 import { StopsManager } from './components/StopsManager';
 import { PlacesWorkspace } from './components/PlacesWorkspace';
+import { AdsWorkspace } from './components/AdsWorkspace';
 import { ExportModal } from './components/ExportModal';
 import { NewRouteModal } from './components/NewRouteModal';
 import { RouteManagerModal } from './components/RouteManagerModal';
@@ -25,6 +26,7 @@ type HistoryAction =
 export function App() {
   const [isDbReady, setIsDbReady] = useState(false);
   const [placesOpen, setPlacesOpen] = useState(false);
+  const [adsOpen, setAdsOpen] = useState(false);
   const [placesDirty, setPlacesDirty] = useState(false);
   const [dbError, setDbError] = useState('');
   const [isDesktopMode, setIsDesktopMode] = useState(false);
@@ -185,7 +187,7 @@ export function App() {
   // Keyboard shortcuts (Cmd+Z)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (placesOpen) return;
+      if (placesOpen || adsOpen) return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
         const target = e.target as HTMLElement;
         if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return; // Let browser handle text undo
@@ -266,9 +268,11 @@ export function App() {
       {/* Top App Header */}
       <Header
         mappingMode={mappingMode}
-        onToggleMappingMode={mode => {if(placesOpen&&placesDirty&&!window.confirm('Hay cambios de un lugar sin guardar. ¿Descartarlos y salir?'))return;setPlacesDirty(false);setPlacesOpen(false);setMappingMode(mode)}}
+        onToggleMappingMode={mode => {if(placesOpen&&placesDirty&&!window.confirm('Hay cambios de un lugar sin guardar. ¿Descartarlos y salir?'))return;setPlacesDirty(false);setPlacesOpen(false);setAdsOpen(false);setMappingMode(mode)}}
         placesOpen={placesOpen}
-        onOpenPlaces={() => setPlacesOpen(true)}
+        onOpenPlaces={() => {setAdsOpen(false); setPlacesOpen(true);}}
+        adsOpen={adsOpen}
+        onOpenAds={() => {setPlacesOpen(false); setAdsOpen(true);}}
         routes={routes}
         selectedRoute={mappingMode === 'route' ? selectedRoute : null}
         selectedRouteId={selectedRouteId}
@@ -297,8 +301,9 @@ export function App() {
       />
 
       {placesOpen && <PlacesWorkspace onDirtyChange={setPlacesDirty} />}
+      {adsOpen && <AdsWorkspace />}
       {/* Keep existing editor state, but isolate all place interactions. */}
-      <div className={placesOpen ? 'hidden' : 'flex flex-1 min-h-0 flex-col'}>
+      <div className={placesOpen || adsOpen ? 'hidden' : 'flex flex-1 min-h-0 flex-col'}>
       {/* Main Workspace (Map + Drawer) */}
       <div className="flex-1 min-h-0 relative flex flex-col md:flex-row overflow-hidden">
               {isRouteManagerOpen && (

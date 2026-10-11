@@ -17,6 +17,8 @@ import type { RouteItem, DirectionType } from '../types';
 interface HeaderProps {
   placesOpen: boolean;
   onOpenPlaces: () => void;
+  adsOpen: boolean;
+  onOpenAds: () => void;
   mappingMode: 'zone' | 'route' | 'stops';
   onToggleMappingMode: (mode: 'zone' | 'route' | 'stops') => void;
   routes: RouteItem[];
@@ -44,6 +46,8 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   placesOpen,
   onOpenPlaces,
+  adsOpen,
+  onOpenAds,
   mappingMode,
   onToggleMappingMode,
   routes,
@@ -138,7 +142,8 @@ export const Header: React.FC<HeaderProps> = ({
           >
             🚏 Paradas
           </button>
-          <button onClick={onOpenPlaces} aria-pressed={placesOpen} className={`flex-1 py-1.5 px-2 rounded-full text-[13px] font-bold ${placesOpen ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500'}`}>Lugares</button>
+          <button onClick={onOpenPlaces} aria-pressed={placesOpen} className={`flex-1 py-1.5 px-2 rounded-full text-[13px] font-bold ${placesOpen ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>Lugares</button>
+          <button onClick={onOpenAds} aria-pressed={adsOpen} className={`flex-1 py-1.5 px-2 rounded-full text-[13px] font-bold ${adsOpen ? 'bg-amber-500 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>Ads</button>
         </div>
 
         {/* Central Controls (Only visible in Route Mode) */}

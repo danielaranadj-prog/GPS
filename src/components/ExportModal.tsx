@@ -97,6 +97,31 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  // A reviewable snapshot, never a direct write to the passenger app.
+  const handleDraftBundle = async () => {
+    const [routes, stops, places, ads] = await Promise.all([
+      db.routes.toArray(), db.stops.toArray(), db.places.toArray(), db.ads.toArray()
+    ]);
+    const bundle = {
+      schemaVersion: 1,
+      dataset: 'pordondepasa-draft',
+      status: 'draft',
+      exportedAt: new Date().toISOString(),
+      routes, stops, places,
+      // Never export client contact details or internal campaign notes.
+      ads: ads.map(({ clientId: _clientId, notes: _notes, ...publicAd }) => publicAd),
+    };
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `pordondepasa-borrador-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   
   const handleShare = async () => {
     const filename = activeTab === 'stops' ? 'stops.json' : 'routes.json';
@@ -184,7 +209,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <FileJson className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-white">Exportador Oficial Tepic Transit</h3>
+              <h3 className="font-bold text-base text-white">Exportador PorDóndePasa</h3>
               <p className="text-xs text-slate-400">Data estandarizada para la App Móvil del sistema</p>
             </div>
           </div>
@@ -263,6 +288,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            <button onClick={handleDraftBundle} className="px-3.5 py-2 rounded-xl bg-amber-700 hover:bg-amber-600 text-white font-bold text-xs" title="Incluye rutas, paradas, lugares y campañas; no publica nada">
+              Descargar borrador completo
+            </button>
             <button
               onClick={handleShare}
               className="p-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 flex items-center justify-center transition-all"

@@ -420,6 +420,11 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           popupAnchor,
         });
 
+        if (!stop.coordinates || typeof stop.coordinates.lat !== 'number' || typeof stop.coordinates.lng !== 'number' || isNaN(stop.coordinates.lat) || isNaN(stop.coordinates.lng)) {
+          console.warn('Skipping stop with invalid coordinates:', stop);
+          return;
+        }
+
         const marker = L.marker([stop.coordinates.lat, stop.coordinates.lng], {
           icon: customIcon,
           draggable: zoom >= 15 && !stop.isLocked, // only draggable when zoomed in enough and unlocked

@@ -1,8 +1,8 @@
 import type { Place, PlaceCategory } from '../types';
 
 export const placeCategories: Record<PlaceCategory, string> = {
-  gobierno: 'Gobierno', escuela: 'Escuela', hospital: 'Hospital / salud', mercado: 'Mercado', plaza: 'Plaza / comercio',
-  oficina: 'Oficina / trámites', parque: 'Parque', deporte: 'Espacio deportivo', estadio: 'Estadio',
+  gobierno: 'Gobierno', oficina: 'Oficina / trámites', banco: 'Banco / Cajero', escuela: 'Escuela', hospital: 'Hospital / salud', mercado: 'Mercado', plaza: 'Plaza / comercio',
+  parque: 'Parque', deporte: 'Espacio deportivo', estadio: 'Estadio',
   museo: 'Museo', teatro: 'Teatro', monumento: 'Monumento histórico', 
   cementerio: 'Panteón / Cementerio', religion: 'Iglesia / Templo', restaurante: 'Restaurante', cafe: 'Cafetería',
   agencia: 'Agencia automotriz', bar: 'Bar / Centro nocturno', hotel: 'Hotel / Alojamiento',
@@ -67,7 +67,8 @@ export function parsePlaces(input: unknown): Place[] {
         bares: 'bar', antro: 'bar', antros: 'bar', cantina: 'bar',
         hoteles: 'hotel', motel: 'hotel', moteles: 'hotel',
         gimnasios: 'gimnasio', gym: 'gimnasio',
-        cines: 'cine', cinema: 'cine'
+        cines: 'cine', cinema: 'cine',
+        bancos: 'banco', cajero: 'banco', cajeros: 'banco', atm: 'banco'
       };
       const category = (aliases[rawCategory] || rawCategory) as PlaceCategory;
       if (!Object.prototype.hasOwnProperty.call(placeCategories, category)) throw Error('Categoría desconocida.');

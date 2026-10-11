@@ -1,5 +1,5 @@
 export type StopType = 'oficial' | 'costumbre' | 'base';
-export type PlaceCategory = 'escuela' | 'hospital' | 'mercado' | 'plaza' | 'oficina' | 'gobierno' | 'parque' | 'deporte' | 'estadio' | 'museo' | 'teatro' | 'monumento' | 'cementerio' | 'religion' | 'restaurante' | 'cafe' | 'agencia' | 'bar' | 'hotel' | 'gimnasio' | 'cine' | 'terminal' | 'colonia' | 'otro';
+export type PlaceCategory = 'escuela' | 'hospital' | 'mercado' | 'plaza' | 'oficina' | 'gobierno' | 'banco' | 'parque' | 'deporte' | 'estadio' | 'museo' | 'teatro' | 'monumento' | 'cementerio' | 'religion' | 'restaurante' | 'cafe' | 'agencia' | 'bar' | 'hotel' | 'gimnasio' | 'cine' | 'terminal' | 'colonia' | 'otro';
 export interface Place {
   id: string;
   name: string;
@@ -98,4 +98,33 @@ export interface ExportStopsFile {
     sequence: number;
     accuracy?: number;
   }[];
+}
+
+export type AdType = 'banner' | 'pin';
+
+export interface Client {
+  id: string;
+  name: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface AdCampaign {
+  id: string;
+  clientId: string; // <-- New field
+  type: AdType;
+  title: string;
+  description: string;
+  icon: string; // Emoji, URL
+  routeIds: string[]; // which routes this ad applies to, or empty for all
+  coordinates?: Coordinates; // used if type is 'pin'
+  radiusMeters?: number; // threshold to trigger
+  callToAction?: string; // e.g. 'Llevarme ahí', 'Obtener Promo'
+  isActive: boolean;
+  startDate?: string;
+  endDate?: string;
+  notes?: string;
+  createdAt: string;
 }

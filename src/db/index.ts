@@ -1,12 +1,15 @@
 import Dexie, { type Table } from 'dexie';
-import type { Stop, RouteItem, RecordedTrack, Place } from '../types';
+import type { Stop, RouteItem, RecordedTrack, Place, AdCampaign, Client } from '../types';
 import defaultRoutes from '../data/tepicRoutes.json';
+import defaultPlaces from '../data/tepicPlaces.json';
 
 export class TransitStudioDatabase extends Dexie {
   stops!: Table<Stop, string>;
   routes!: Table<RouteItem, string>;
   tracks!: Table<RecordedTrack, string>;
   places!: Table<Place, string>;
+  ads!: Table<AdCampaign, string>;
+  clients!: Table<Client, string>;
 
   constructor(name = 'TepicTransitStudioDB') {
     super(name);
@@ -30,6 +33,11 @@ export class TransitStudioDatabase extends Dexie {
     });
     // Additive migration: existing stores and records are preserved.
     this.version(6).stores({ places: 'id, name, category, status, updatedAt' });
+    this.version(7).stores({ ads: 'id, type, isActive, createdAt' });
+    this.version(8).stores({ 
+      ads: 'id, type, clientId, isActive, createdAt',
+      clients: 'id, name, createdAt'
+    });
   }
 }
 
@@ -58,6 +66,15 @@ export async function initializeDatabase() {
   await db.transaction('rw', db.routes, async () => {
     const existing = new Set(await db.routes.toCollection().primaryKeys());
     await db.routes.bulkAdd(mappedRoutes.filter(route => !existing.has(route.id)));
+  });
+
+  // Seed default places if not already present
+  await db.transaction('rw', db.places, async () => {
+    const existingPlaces = new Set(await db.places.toCollection().primaryKeys());
+    const newPlaces = (defaultPlaces as Place[]).filter(p => !existingPlaces.has(p.id));
+    if (newPlaces.length > 0) {
+      await db.places.bulkAdd(newPlaces);
+    }
   });
 
   // No sample stops — user creates real stops from GPS field work
