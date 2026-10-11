@@ -7,6 +7,7 @@ import type { AdCampaign, Client, AdType } from '../types';
 export const AdsWorkspace: React.FC = () => {
   const allAds = useLiveQuery(() => db.ads.toArray()) || [];
   const places = useLiveQuery(() => db.places.toArray()) || [];
+  const routes = useLiveQuery(() => db.routes.toArray()) || [];
   const clients = useLiveQuery(() => db.clients.toArray()) || [];
   
   const [activeTab, setActiveTab] = useState<'campaigns' | 'calendar' | 'clients' | 'formats'>('formats');
@@ -34,6 +35,7 @@ export const AdsWorkspace: React.FC = () => {
   const [lng, setLng] = useState('');
   const [radiusMeters, setRadiusMeters] = useState(300);
   const [callToAction, setCallToAction] = useState('Llevarme ahí');
+  const [routeIds, setRouteIds] = useState<string[]>([]);
 
   // Client Form State
   const [clientName, setClientName] = useState('');
@@ -51,6 +53,11 @@ export const AdsWorkspace: React.FC = () => {
 
   const handleCampaignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const latitude = Number(lat), longitude = Number(lng);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude)>90 || Math.abs(longitude)>180) {
+      alert('Selecciona un negocio con coordenadas válidas.'); return;
+    }
+    if (startDate && endDate && startDate > endDate) { alert('La fecha final debe ser igual o posterior a la inicial.'); return; }
     const adData: AdCampaign = {
       id: editingAdId || `ad-${Date.now()}`,
       clientId: clientId || 'default',
@@ -59,15 +66,15 @@ export const AdsWorkspace: React.FC = () => {
       description,
       icon,
       referenceText: type === 'landmark' ? referenceText : undefined,
-      promoText: type === 'landmark' ? promoText : undefined,
-      routeIds: [],
-      coordinates: (lat && lng) ? { lat: parseFloat(lat), lng: parseFloat(lng) } : undefined,
-      radiusMeters: radiusMeters,
+      promoText: promoText || undefined,
+      routeIds,
+      coordinates: { lat: latitude, lng: longitude },
+      radiusMeters: Math.min(radiusMeters, type === 'landmark' ? 350 : 500),
       callToAction: callToAction || 'Llevarme ahí',
       startDate: startDate || undefined,
       endDate: endDate || undefined,
       isActive: true, // Always save as active or keep existing status
-      createdAt: new Date().toISOString()
+      createdAt: allAds.find(ad => ad.id === editingAdId)?.createdAt ?? new Date().toISOString()
     };
     
     if (editingAdId) {
@@ -95,6 +102,7 @@ export const AdsWorkspace: React.FC = () => {
     setEndDate(ad.endDate || '');
     setRadiusMeters(ad.radiusMeters || 300);
     setCallToAction(ad.callToAction || 'Llevarme ahí');
+    setRouteIds(ad.routeIds || []);
     if (ad.coordinates) {
        setLat(ad.coordinates.lat.toString());
        setLng(ad.coordinates.lng.toString());
@@ -119,7 +127,7 @@ export const AdsWorkspace: React.FC = () => {
   };
 
   const resetCampaignForm = () => {
-    setEditingAdId(null); setTitle(''); setDescription(''); setIcon('🍔'); setReferenceText(''); setPromoText(''); setLat(''); setLng(''); setType('pin'); setStartDate(''); setEndDate(''); setClientId(''); setRadiusMeters(300); setCallToAction('Llevarme ahí');
+    setEditingAdId(null); setTitle(''); setDescription(''); setIcon('🍔'); setReferenceText(''); setPromoText(''); setLat(''); setLng(''); setType('pin'); setStartDate(''); setEndDate(''); setClientId(''); setRadiusMeters(300); setCallToAction('Llevarme ahí'); setRouteIds([]);
   };
 
   const handleDeleteCampaign = async (id: string) => {
@@ -135,7 +143,14 @@ export const AdsWorkspace: React.FC = () => {
   };
 
   const exportAdsJson = async () => {
-    const campaigns = await db.ads.toArray();
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    const campaigns = (await db.ads.toArray()).filter(ad =>
+      ad.isActive && (ad.type === 'pin' || ad.type === 'landmark') &&
+      !!ad.coordinates && Number.isFinite(ad.coordinates.lat) && Number.isFinite(ad.coordinates.lng) &&
+      (!ad.startDate || ad.startDate <= today) && (!ad.endDate || ad.endDate >= today) &&
+      (ad.type !== 'landmark' || !!ad.referenceText?.trim())
+    );
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(campaigns, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
@@ -143,6 +158,7 @@ export const AdsWorkspace: React.FC = () => {
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
+    alert(`Se exportaron ${campaigns.length} campañas vigentes. Copia ads.json a PorDondePasa/public/data/ para probarlas localmente.`);
   };
 
   const generateAICopy = () => {
@@ -810,7 +826,7 @@ export const AdsWorkspace: React.FC = () => {
 
                   {type === 'landmark' && (
                     <div className="mt-2 p-2.5 bg-purple-50/70 border border-purple-200 rounded-lg text-[11px] text-purple-900 leading-relaxed">
-                      💡 <strong>¿Cómo funciona el Ad Invisible?</strong> Cuando el pasajero viene en la micro y se encuentra a menos de 350m de bajarse, la app reemplaza el aviso genérico por: <em>"Prepárate para bajar frente a [Referencia]"</em>. Es 100% natural y sirve de guía real de orientación.
+                      💡 <strong>Referencia patrocinada:</strong> cerca de la bajada aparece una sugerencia comercial identificada como publicidad. La parada y la instrucción real del viaje nunca se sustituyen.
                     </div>
                   )}
                   {type === 'pin' && (
@@ -897,7 +913,7 @@ export const AdsWorkspace: React.FC = () => {
                         className="w-full border-purple-300 focus:border-purple-500 rounded-lg text-sm bg-white"
                       />
                       <p className="text-[10px] text-slate-500 mt-1">
-                        Se insertará en el aviso: <em>"Prepárate para bajar {referenceText || '[referencia]'}"</em>
+                        Referencia interna para revisar la ubicación del negocio; la app mostrará el nombre y la distancia, sin afirmar que la parada esté frente al local.
                       </p>
                     </div>
                     <div>
@@ -910,7 +926,7 @@ export const AdsWorkspace: React.FC = () => {
                         placeholder="Ej: 15% desc. en barra mostrando tu trayecto"
                         className="w-full border-slate-300 rounded-lg text-sm bg-white"
                       />
-                      <p className="text-[10px] text-slate-500 mt-1">Aparece sutilmente como subtítulo en la alerta de proximidad de parada.</p>
+                      <p className="text-[10px] text-slate-500 mt-1">Aparece en el detalle expandido de la sugerencia patrocinada.</p>
                     </div>
                   </div>
                 )}
@@ -927,9 +943,18 @@ export const AdsWorkspace: React.FC = () => {
                      <label className="block text-xs font-bold text-slate-600 mb-1 flex justify-between">
                        Radio de Impacto <span>{radiusMeters} metros</span>
                      </label>
-                     <input type="range" min="100" max="1500" step="100" value={radiusMeters} onChange={e => setRadiusMeters(Number(e.target.value))} className="w-full mt-2" />
-                     <p className="text-[10px] text-slate-400 mt-1">Distancia máx. desde la parada de destino del usuario.</p>
+                     <input type="range" min="50" max={type === 'landmark' ? 350 : 500} step="50" value={Math.min(radiusMeters,type === 'landmark' ? 350 : 500)} onChange={e => setRadiusMeters(Number(e.target.value))} className="w-full mt-2" />
+                     <p className="text-[10px] text-slate-400 mt-1">Hito: distancia desde la bajada (máximo 350 m). Pin: cercanía al trayecto (máximo 500 m).</p>
                   </div>
+                </div>
+
+                <div>
+                  <label htmlFor="ad-routes" className="block text-xs font-bold text-slate-600 mb-1">Rutas donde puede mostrarse</label>
+                  <select id="ad-routes" multiple size={Math.min(6,Math.max(3,routes.length))} value={routeIds} onChange={e=>setRouteIds(Array.from(e.currentTarget.selectedOptions,option=>option.value))} className="w-full border-slate-300 rounded-lg text-sm bg-white">
+                    {routes.map(route=><option key={route.id} value={route.id}>{route.name}</option>)}
+                  </select>
+                  <button type="button" onClick={()=>setRouteIds([])} className="text-xs text-blue-600 mt-1">Aplicar a todas las rutas</button>
+                  <p className="text-[10px] text-slate-500">Sin selección: todas las rutas. Usa Cmd/Ctrl para seleccionar varias.</p>
                 </div>
 
                 <div className="grid grid-cols-4 gap-4 border-t border-slate-100 pt-4">
