@@ -36,6 +36,7 @@ export interface Stop {
   notes?: string;
   isLocked?: boolean; // prevent deletion or movement
   createdAt?: string;
+  appFile?: { name: string; originalId: string }; // local editor binding; never exported to the app
 }
 
 export interface RouteItem {

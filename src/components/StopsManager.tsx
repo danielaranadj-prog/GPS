@@ -1,7 +1,9 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Trash2, MapPin, Download, UploadCloud, Lock, Unlock, Edit2 } from 'lucide-react';
 import type { Stop, StopType } from '../types';
 import { db } from '../db';
+import { parseStops } from '../services/stops';
+import { StopsFileConnection } from './StopsFileConnection';
 
 interface StopsManagerProps {
   stops: Stop[];
@@ -18,6 +20,8 @@ export const StopsManager: React.FC<StopsManagerProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [incoming, setIncoming] = useState<Stop[] | null>(null);
+  const [importError, setImportError] = useState('');
 
   useEffect(() => {
     if (selectedStopId && scrollContainerRef.current) {
@@ -41,33 +45,34 @@ export const StopsManager: React.FC<StopsManagerProps> = ({
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
+    setIncoming(null); setImportError('');
+    if (file.size > 10 * 1024 * 1024) { setImportError('El archivo supera 10 MB.'); return; }
     const reader = new FileReader();
-    reader.onload = async (event) => {
+    reader.onload = (event) => {
       try {
-        const parsed = JSON.parse(event.target?.result as string);
-        if (Array.isArray(parsed)) {
-          const confirmOverwrite = window.confirm('¿Deseas sobreescribir las paradas actuales?');
-          if (confirmOverwrite) {
-            await db.stops.clear();
-            await db.stops.bulkPut(parsed);
-            alert(`¡Se importaron ${parsed.length} paradas!`);
-          }
-        } else if (parsed.stops && Array.isArray(parsed.stops)) {
-          const confirmOverwrite = window.confirm('¿Deseas sobreescribir las paradas actuales?');
-          if (confirmOverwrite) {
-            await db.stops.clear();
-            await db.stops.bulkPut(parsed.stops);
-            alert(`¡Se importaron ${parsed.stops.length} paradas!`);
-          }
-        }
+        setIncoming(parseStops(JSON.parse(event.target?.result as string)));
       } catch (err) {
-        console.error(err);
-        alert('Error al leer el archivo JSON.');
+        setImportError(err instanceof Error ? err.message : 'Error al leer el archivo JSON.');
       }
     };
+    reader.onerror = () => setImportError('No se pudo leer el archivo.');
     reader.readAsText(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const confirmImport = async () => {
+    if (!incoming) return;
+    if (!window.confirm(`Se reemplazarán ${stops.length} paradas por ${incoming.length} del archivo. ¿Continuar?`)) return;
+    try {
+      await db.transaction('rw', db.stops, async () => {
+        await db.stops.clear();
+        await db.stops.bulkPut(incoming);
+      });
+      setIncoming(null);
+      setImportError(`Se importaron ${incoming.length} paradas. Conserva también el archivo como respaldo.`);
+    } catch {
+      setImportError('Falló la importación. La transacción conservó las paradas anteriores.');
+    }
   };
 
   const toggleLock = (stop: Stop) => {
@@ -120,12 +125,18 @@ export const StopsManager: React.FC<StopsManagerProps> = ({
           >
             <Download className="w-4 h-4" />
           </button>
-          <label className="p-1.5 cursor-pointer text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors" title="Importar Paradas (Sobreescribir)">
+          <label className="p-1.5 cursor-pointer text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors" title="Importar respaldo completo (reemplaza todas las paradas; no usar para editar archivos de la app)">
             <UploadCloud className="w-4 h-4" />
             <input type="file" accept=".json" className="hidden" ref={fileInputRef} onChange={handleImport} />
           </label>
         </div>
       </div>
+      <div className="max-h-[45%] overflow-y-auto shrink-0"><StopsFileConnection selectedStopId={selectedStopId} /></div>
+      {importError && <p role="status" className="px-3 py-2 text-xs bg-amber-50 text-amber-900">{importError}</p>}
+      {incoming && <div className="px-3 py-2 text-xs bg-blue-50 text-slate-800 border-b border-blue-200">
+        <strong>Archivo validado: {incoming.length} paradas.</strong> Hay {stops.length} guardadas; confirma solo si deseas reemplazarlas todas.
+        <div className="flex gap-2 mt-2"><button onClick={() => void confirmImport()} className="px-3 py-2 rounded bg-blue-600 text-white">Reemplazar paradas</button><button onClick={() => setIncoming(null)} className="px-3 py-2 rounded border">Cancelar</button></div>
+      </div>}
       
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-3 space-y-2 pb-safe">
         {stops.length === 0 ? (
@@ -181,6 +192,7 @@ export const StopsManager: React.FC<StopsManagerProps> = ({
                       {stop.coordinates.lat.toFixed(4)}, {stop.coordinates.lng.toFixed(4)}
                     </span>
                   </div>
+                  {stop.appFile && <small className="block text-[10px] text-blue-600 mt-1 truncate" title={stop.appFile.originalId}>{stop.appFile.name}</small>}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button 

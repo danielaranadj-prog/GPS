@@ -263,7 +263,7 @@ export function App() {
   if (!isDbReady) { return <div className="h-full w-full bg-slate-50 p-6" role="status">{dbError || 'Abriendo tus datos…'}</div>; }
 
   return (
-    <div className="h-full w-full flex flex-col bg-white text-slate-900 overflow-hidden font-sans relative">
+    <div data-screen={adsOpen?'gps-publicidad':placesOpen?'gps-lugares':mappingMode==='stops'?'gps-paradas':mappingMode==='route'?'gps-rutas':'gps-zonas'} className="h-full w-full flex flex-col bg-white text-slate-900 overflow-hidden font-sans relative">
       
       {/* Top App Header */}
       <Header

@@ -221,6 +221,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </button>
         </div>
 
+        {allStops.some(stop => stop.appFile) && <p role="note" className="mx-4 mt-3 p-3 rounded-xl bg-blue-950 text-blue-200 text-xs">Hay paradas conectadas a PorDóndePasa. Para actualizar la app, guarda cada archivo desde <strong>Paradas → Archivos de PorDóndePasa</strong>; esta exportación general no conserva esa separación ni la precisión completa.</p>}
         {/* Tab switch */}
         <div className="px-4 pt-3 pb-1 flex items-center justify-between border-b border-slate-800 bg-slate-950/40">
           <div className="flex gap-2">

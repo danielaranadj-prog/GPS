@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { buildAppStopFile, linkedStops, parseAppStopFile, writeAppStopFile, APP_STOP_FILES, type StopFileHandle } from '../src/services/appStopFiles.ts';
+let total=0;
+for(const name of APP_STOP_FILES){
+ const file=parseAppStopFile(name,readFileSync(new URL(`../../PorDondePasa/public/data/stops/${name}`,import.meta.url),'utf8'));
+ const copies=linkedStops(file),result=buildAppStopFile(file,copies);total+=copies.length;
+ assert.deepEqual(JSON.parse(result.text),file.document,'Untouched files retain every header, field, membership, ID, direction and exact coordinate');
+ assert.equal(result.changed,0);assert.equal(result.removed,0);assert.equal(result.added,0);
+ const modified=copies.map((stop,index)=>index?stop:{...stop,name:'Nombre editado',coordinates:{...stop.coordinates,lat:stop.coordinates.lat+.00000001}});
+ const edit=buildAppStopFile(file,modified);assert.equal(edit.changed,1);assert.equal(edit.stops[0].coordinates.lat,modified[0].coordinates.lat);
+ assert.equal(edit.stops[0].id,file.stops[0].id);assert.ok(!edit.text.includes('app-file:'));assert.ok(!edit.text.includes('appFile'));
+ assert.equal(buildAppStopFile(file,copies.slice(1)).removed,1);
+ assert.equal(buildAppStopFile(file,[...copies,{...copies[0],id:'other',appFile:undefined}]).stops.length,copies.length,'Unbound/other stops never enter the file');
+ assert.throws(()=>buildAppStopFile(file,[...copies,copies[0]]),/repetidos/);
+}
+assert.equal(total,205);
+const raw=JSON.stringify({cityId:'tepic',futureMetadata:{version:7},stops:[{id:'a',name:'A',type:'costumbre',direction:'vuelta',sequence:0,coordinates:{lat:21.5,lng:-104.9},futureField:{value:'kept'}}]});
+const file=parseAppStopFile('general-stops.json',raw),records=linkedStops(file);
+assert.deepEqual(JSON.parse(buildAppStopFile(file,records).text),JSON.parse(raw));
+assert.throws(()=>parseAppStopFile('ads.json',raw),/Selecciona/);
+let disk=raw,staged='',closed=0,aborted=0,backups=0;
+const handle:StopFileHandle={name:file.name,getFile:async()=>({size:disk.length,text:async()=>disk}),createWritable:async()=>({write:async text=>{staged=text},close:async()=>{disk=staged;closed++},abort:async()=>{aborted++}})};
+const next=buildAppStopFile(file,records.map(stop=>({...stop,name:'Editado'}))).text;
+await writeAppStopFile(file,next,handle,async(text,name)=>{assert.equal(text,raw);assert.equal(name,file.name);backups++});
+assert.equal(closed,1);assert.equal(backups,1);assert.equal(JSON.parse(disk).stops[0].name,'Editado');
+await assert.rejects(()=>writeAppStopFile(file,next,handle,async()=>{backups++}),/cambió/);assert.equal(backups,1);assert.equal(closed,1);
+disk=raw;
+await assert.rejects(()=>writeAppStopFile(file,next,{...handle,createWritable:async()=>({write:async()=>{disk='external edit'},close:async()=>{closed++},abort:async()=>{aborted++}})},async()=>{}),/cambió/);
+assert.equal(aborted,1);assert.equal(closed,1);
+disk=raw;
+await assert.rejects(()=>writeAppStopFile(file,next,{...handle,createWritable:async()=>({write:async()=>{throw new Error('Disk full')},close:async()=>{closed++},abort:async()=>{aborted++}})},async()=>{}),/Disk full/);
+assert.equal(disk,raw);assert.equal(aborted,2);
+console.log(`PASS: ${total} real stops round-trip, exact metadata/coordinates, selective edits, separate files, stale-file protection, backups and failed-write abort.`);
